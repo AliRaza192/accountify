@@ -1,0 +1,66 @@
+services:
+  # Backend Service
+  - type: web
+    name: ai-accounts-backend
+    env: python
+    region: oregon
+    plan: starter
+    
+    # Build configuration
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    
+    # Health check
+    healthCheckPath: /health
+    healthCheckTimeout: 30
+    
+    # Environment variables
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 1440
+      - key: BACKEND_CORS_ORIGINS
+        value: '["http://localhost:3000","http://localhost:3001","http://127.0.0.1:3000","http://127.0.0.1:3001"]'
+    
+    # Disk for persistent storage (optional)
+    # disk:
+    #   name: backend-data
+    #   mountPath: /app/data
+    #   sizeGB: 1
+
+  # Frontend Service (if deploying on Render instead of Vercel)
+  - type: web
+    name: ai-accounts-frontend
+    env: node
+    region: oregon
+    plan: starter
+    
+    # Build configuration
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    
+    # Health check
+    healthCheckPath: /health
+    healthCheckTimeout: 30
+    
+    # Environment variables
+    envVars:
+      - key: NODE_VERSION
+        value: 20.x
+      - key: NEXT_PUBLIC_API_URL
+        sync: false

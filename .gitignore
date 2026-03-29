@@ -1,0 +1,183 @@
+# ==================== PYTHON ====================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+virtualenv/
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Environments
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.save
+.env.bak
+.env~
+*.env
+
+# ==================== NODE / NEXT.JS ====================
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Next.js
+.next/
+out/
+build
+dist
+
+# Production
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# ==================== IDE ====================
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.swp
+*.swo
+*~
+
+# ==================== OS ====================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ==================== LOGS ====================
+logs/
+*.log
+
+# ==================== DATABASE ====================
+*.db
+*.sqlite
+*.sqlite3
+
+# ==================== DOCKER ====================
+docker-compose.override.yml
+.docker/
+
+# ==================== BACKUP FILES ====================
+*.bak
+*.backup
+*.old
+
+# ==================== SENSITIVE FILES ====================
+# Secrets and keys
+*.pem
+*.key
+secrets/
+credentials/
+
+# ==================== SPECIFIC TO THIS PROJECT ====================
+# Backend environment files
+backend/.env
+backend/.env.local
+backend/.env.save
+backend/.env.bak
+
+# Frontend environment files
+frontend/.env
+frontend/.env.local
+frontend/.env.save
+frontend/.env.bak
+
+# Root environment files
+/.env
+/.env.local
+/.env.save
+/.env.bak
+
+# Any .env file anywhere in the project
+**/.env
+**/.env.local
+**/.env.save
+**/.env.bak
+**/*.env
