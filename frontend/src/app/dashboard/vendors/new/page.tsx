@@ -77,7 +77,7 @@ export default function NewVendorPage() {
         toast({
           title: "Success",
           description: "Vendor created successfully",
-          variant: "success",
+          
         })
         router.push("/dashboard/vendors")
       }
@@ -95,7 +95,7 @@ export default function NewVendorPage() {
         toast({
           title: "Error",
           description: error.response?.data?.detail || "Failed to create vendor",
-          variant: "error",
+          
         })
       }
     } finally {

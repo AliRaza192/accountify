@@ -86,7 +86,7 @@ export default function EditVendorPage() {
       toast({
         title: "Error",
         description: "Failed to load vendor details",
-        variant: "error",
+        
       })
       router.push("/dashboard/vendors")
     } finally {
@@ -129,7 +129,7 @@ export default function EditVendorPage() {
         toast({
           title: "Success",
           description: "Vendor updated successfully",
-          variant: "success",
+          
         })
         router.push("/dashboard/vendors")
       }
@@ -147,7 +147,7 @@ export default function EditVendorPage() {
         toast({
           title: "Error",
           description: error.response?.data?.detail || "Failed to update vendor",
-          variant: "error",
+          
         })
       }
     } finally {

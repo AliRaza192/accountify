@@ -36,6 +36,8 @@ interface LedgerData {
   opening_balance: number
   entries: LedgerEntry[]
   closing_balance: number
+  start_date?: string
+  end_date?: string
 }
 
 export default function CustomerLedgerReportPage() {
@@ -65,7 +67,7 @@ export default function CustomerLedgerReportPage() {
       toast({
         title: "Error",
         description: "Please select a customer",
-        variant: "error",
+        
       })
       return
     }
@@ -81,7 +83,7 @@ export default function CustomerLedgerReportPage() {
       toast({
         title: "Error",
         description: "Failed to generate Customer Ledger",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -163,7 +165,13 @@ export default function CustomerLedgerReportPage() {
               {data.customer.name}
             </p>
             <p className="text-xs text-gray-400 text-center mt-1">
-              {new Date(data.start_date).toLocaleDateString()} - {new Date(data.end_date).toLocaleDateString()}
+              {data.start_date && data.end_date ? (
+                <>
+                  {new Date(data.start_date).toLocaleDateString()} - {new Date(data.end_date).toLocaleDateString()}
+                </>
+              ) : (
+                "All dates"
+              )}
             </p>
           </div>
 

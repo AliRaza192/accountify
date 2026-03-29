@@ -116,7 +116,7 @@ export default function EditProductPage() {
       toast({
         title: "Error",
         description: "Failed to load product details",
-        variant: "error",
+        
       })
       router.push("/dashboard/products")
     } finally {
@@ -167,7 +167,7 @@ export default function EditProductPage() {
         toast({
           title: "Success",
           description: "Product updated successfully",
-          variant: "success",
+          
         })
         router.push("/dashboard/products")
       }
@@ -185,7 +185,7 @@ export default function EditProductPage() {
         toast({
           title: "Error",
           description: error.response?.data?.detail || "Failed to update product",
-          variant: "error",
+          
         })
       }
     } finally {

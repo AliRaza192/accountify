@@ -94,7 +94,7 @@ export default function BillsPage() {
       toast({
         title: "Error",
         description: "Failed to load bills",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -107,7 +107,7 @@ export default function BillsPage() {
       toast({
         title: "Success",
         description: "Bill deleted successfully",
-        variant: "success",
+        
       })
       fetchBills()
       setDeleteConfirm(null)
@@ -116,7 +116,7 @@ export default function BillsPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to delete bill",
-        variant: "error",
+        
       })
     }
   }

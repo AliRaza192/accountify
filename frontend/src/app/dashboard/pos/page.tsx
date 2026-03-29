@@ -14,6 +14,7 @@ interface Product {
   sale_price: number
   stock_quantity: number
   category: string | null
+  tax_rate?: number
 }
 
 interface Customer {
@@ -157,7 +158,7 @@ export default function POSPage() {
       toast({
         title: "Error",
         description: "Cart is empty",
-        variant: "error",
+        
       })
       return
     }
@@ -185,14 +186,14 @@ export default function POSPage() {
       toast({
         title: "Success",
         description: `Sale ${response.data.invoice_number} processed successfully`,
-        variant: "success",
+        
       })
     } catch (error: any) {
       console.error("Failed to process sale:", error)
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to process sale",
-        variant: "error",
+        
       })
     } finally {
       setIsProcessing(false)

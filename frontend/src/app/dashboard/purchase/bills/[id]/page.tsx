@@ -213,7 +213,7 @@ export default function BillDetailPage() {
       toast({
         title: "Error",
         description: "Failed to load bill details",
-        variant: "error",
+        
       })
       router.push("/dashboard/purchase/bills")
     } finally {
@@ -228,7 +228,7 @@ export default function BillDetailPage() {
       toast({
         title: "Success",
         description: "Bill confirmed successfully",
-        variant: "success",
+        
       })
       fetchBill()
     } catch (error: any) {
@@ -236,7 +236,7 @@ export default function BillDetailPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to confirm bill",
-        variant: "error",
+        
       })
     } finally {
       setIsConfirming(false)
@@ -254,7 +254,7 @@ export default function BillDetailPage() {
       toast({
         title: "Success",
         description: "Payment recorded successfully",
-        variant: "success",
+        
       })
       fetchBill()
     } catch (error: any) {
@@ -262,7 +262,7 @@ export default function BillDetailPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to record payment",
-        variant: "error",
+        
       })
       throw error
     }

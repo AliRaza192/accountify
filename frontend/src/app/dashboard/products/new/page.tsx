@@ -112,7 +112,7 @@ export default function NewProductPage() {
         toast({
           title: "Success",
           description: "Product created successfully",
-          variant: "success",
+          
         })
         router.push("/dashboard/products")
       }
@@ -130,7 +130,7 @@ export default function NewProductPage() {
         toast({
           title: "Error",
           description: error.response?.data?.detail || "Failed to create product",
-          variant: "error",
+          
         })
       }
     } finally {

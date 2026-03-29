@@ -213,7 +213,7 @@ export default function InvoiceDetailPage() {
       toast({
         title: "Error",
         description: "Failed to load invoice details",
-        variant: "error",
+        
       })
       router.push("/dashboard/sales/invoices")
     } finally {
@@ -228,7 +228,7 @@ export default function InvoiceDetailPage() {
       toast({
         title: "Success",
         description: "Invoice confirmed successfully",
-        variant: "success",
+        
       })
       fetchInvoice()
     } catch (error: any) {
@@ -236,7 +236,7 @@ export default function InvoiceDetailPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to confirm invoice",
-        variant: "error",
+        
       })
     } finally {
       setIsConfirming(false)
@@ -254,7 +254,7 @@ export default function InvoiceDetailPage() {
       toast({
         title: "Success",
         description: "Payment recorded successfully",
-        variant: "success",
+        
       })
       fetchInvoice()
     } catch (error: any) {
@@ -262,7 +262,7 @@ export default function InvoiceDetailPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to record payment",
-        variant: "error",
+        
       })
       throw error
     }

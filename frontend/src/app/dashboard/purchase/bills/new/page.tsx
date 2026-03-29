@@ -148,7 +148,7 @@ export default function NewBillPage() {
       toast({
         title: "Error",
         description: "Please select a vendor",
-        variant: "error",
+        
       })
       return
     }
@@ -157,7 +157,7 @@ export default function NewBillPage() {
       toast({
         title: "Error",
         description: "Please add at least one item",
-        variant: "error",
+        
       })
       return
     }
@@ -169,7 +169,7 @@ export default function NewBillPage() {
         toast({
           title: "Error",
           description: `Please select a product for item ${i + 1}`,
-          variant: "error",
+          
         })
         return
       }
@@ -177,7 +177,7 @@ export default function NewBillPage() {
         toast({
           title: "Error",
           description: `Quantity must be positive for item ${i + 1}`,
-          variant: "error",
+          
         })
         return
       }
@@ -185,7 +185,7 @@ export default function NewBillPage() {
         toast({
           title: "Error",
           description: `Rate cannot be negative for item ${i + 1}`,
-          variant: "error",
+          
         })
         return
       }
@@ -229,7 +229,7 @@ export default function NewBillPage() {
       toast({
         title: "Success",
         description: status === "draft" ? "Bill saved as draft" : "Bill created and confirmed",
-        variant: "success",
+        
       })
 
       router.push("/dashboard/purchase/bills")
@@ -238,7 +238,7 @@ export default function NewBillPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || error.response?.data?.message || "Failed to create bill",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)

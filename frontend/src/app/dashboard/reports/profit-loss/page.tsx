@@ -51,7 +51,7 @@ export default function ProfitLossReportPage() {
       toast({
         title: "Error",
         description: "Failed to generate Profit & Loss report",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -62,7 +62,7 @@ export default function ProfitLossReportPage() {
     toast({
       title: "Info",
       description: `${format.toUpperCase()} export coming soon`,
-      variant: "default",
+      
     })
   }
 

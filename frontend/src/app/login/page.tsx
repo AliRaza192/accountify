@@ -53,7 +53,7 @@ function LoginFormContent() {
       toast({
         title: "Login successful",
         description: `Welcome back, ${user.full_name}!`,
-        variant: "success",
+        
       })
 
       router.push("/dashboard")
@@ -61,7 +61,7 @@ function LoginFormContent() {
       toast({
         title: "Login failed",
         description: error.response?.data?.detail || error.response?.data?.message || "Invalid email or password",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)

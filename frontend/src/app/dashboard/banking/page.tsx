@@ -224,7 +224,7 @@ export default function BankingPage() {
       toast({
         title: "Error",
         description: "Failed to load transactions",
-        variant: "error",
+        
       })
     }
   }
@@ -240,7 +240,7 @@ export default function BankingPage() {
       toast({
         title: "Success",
         description: "Transaction recorded successfully",
-        variant: "success",
+        
       })
       fetchAccounts()
       fetchTransactions()
@@ -249,7 +249,7 @@ export default function BankingPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to create transaction",
-        variant: "error",
+        
       })
       throw error
     }
@@ -480,7 +480,7 @@ function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccountModalProps) {
       toast({
         title: "Success",
         description: "Bank account created successfully",
-        variant: "success",
+        
       })
       onSuccess()
     } catch (error: any) {
@@ -488,7 +488,7 @@ function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccountModalProps) {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to create bank account",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)

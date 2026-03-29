@@ -130,7 +130,7 @@ export default function BankReconciliationPage() {
       toast({
         title: "Success",
         description: "Reconciliation completed successfully",
-        variant: "success",
+        
       })
       setMatchedIds([])
       setStatementEntries([])
@@ -140,7 +140,7 @@ export default function BankReconciliationPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to complete reconciliation",
-        variant: "error",
+        
       })
     }
   }

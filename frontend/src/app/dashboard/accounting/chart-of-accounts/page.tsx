@@ -70,7 +70,7 @@ export default function ChartOfAccountsPage() {
       toast({
         title: "Error",
         description: "Failed to load chart of accounts",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -191,7 +191,7 @@ export default function ChartOfAccountsPage() {
       toast({
         title: "Success",
         description: "Default chart of accounts loaded successfully",
-        variant: "success",
+        
       })
       fetchAccounts()
     } catch (error: any) {
@@ -199,7 +199,7 @@ export default function ChartOfAccountsPage() {
       toast({
         title: "Error",
         description: "Failed to load default accounts",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -214,7 +214,7 @@ export default function ChartOfAccountsPage() {
       toast({
         title: "Success",
         description: "Account deleted successfully",
-        variant: "success",
+        
       })
       fetchAccounts()
     } catch (error: any) {
@@ -222,7 +222,7 @@ export default function ChartOfAccountsPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to delete account",
-        variant: "error",
+        
       })
     }
   }
@@ -448,7 +448,7 @@ function AddAccountModal({
       toast({
         title: "Success",
         description: "Account created successfully",
-        variant: "success",
+        
       })
       onSuccess()
     } catch (error: any) {
@@ -456,7 +456,7 @@ function AddAccountModal({
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to create account",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)

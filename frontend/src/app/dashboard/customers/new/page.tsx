@@ -77,7 +77,7 @@ export default function NewCustomerPage() {
         toast({
           title: "Success",
           description: "Customer created successfully",
-          variant: "success",
+          
         })
         router.push("/dashboard/customers")
       }
@@ -95,7 +95,7 @@ export default function NewCustomerPage() {
         toast({
           title: "Error",
           description: error.response?.data?.detail || "Failed to create customer",
-          variant: "error",
+          
         })
       }
     } finally {

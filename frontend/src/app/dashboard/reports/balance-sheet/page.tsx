@@ -44,7 +44,7 @@ export default function BalanceSheetReportPage() {
       toast({
         title: "Error",
         description: "Failed to generate Balance Sheet",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -55,7 +55,7 @@ export default function BalanceSheetReportPage() {
     toast({
       title: "Info",
       description: `${format.toUpperCase()} export coming soon`,
-      variant: "default",
+      
     })
   }
 

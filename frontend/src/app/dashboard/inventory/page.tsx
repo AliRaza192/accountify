@@ -168,7 +168,7 @@ export default function InventoryPage() {
       toast({
         title: "Error",
         description: "Failed to load inventory",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -197,7 +197,7 @@ export default function InventoryPage() {
       toast({
         title: "Success",
         description: "Stock adjustment recorded successfully",
-        variant: "success",
+        
       })
       fetchInventory()
     } catch (error: any) {
@@ -205,7 +205,7 @@ export default function InventoryPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to submit adjustment",
-        variant: "error",
+        
       })
       throw error
     }

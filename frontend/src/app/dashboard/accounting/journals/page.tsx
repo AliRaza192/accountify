@@ -79,7 +79,7 @@ export default function JournalEntriesPage() {
       toast({
         title: "Error",
         description: "Failed to load journal entries",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)

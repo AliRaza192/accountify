@@ -82,7 +82,7 @@ export default function PayrollPage() {
       toast({
         title: "Error",
         description: "Failed to load employees",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -432,7 +432,7 @@ function RunPayrollModal({ isOpen, onClose, onSuccess }: RunPayrollModalProps) {
       toast({
         title: "Success",
         description: "Payroll processed successfully",
-        variant: "success",
+        
       })
       onSuccess()
     } catch (error: any) {
@@ -440,7 +440,7 @@ function RunPayrollModal({ isOpen, onClose, onSuccess }: RunPayrollModalProps) {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to run payroll",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)

@@ -94,7 +94,7 @@ export default function InvoicesPage() {
       toast({
         title: "Error",
         description: "Failed to load invoices",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -107,7 +107,7 @@ export default function InvoicesPage() {
       toast({
         title: "Success",
         description: "Invoice deleted successfully",
-        variant: "success",
+        
       })
       fetchInvoices()
       setDeleteConfirm(null)
@@ -116,7 +116,7 @@ export default function InvoicesPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to delete invoice",
-        variant: "error",
+        
       })
     }
   }
@@ -127,7 +127,7 @@ export default function InvoicesPage() {
       toast({
         title: "Info",
         description: "PDF generation coming soon",
-        variant: "default",
+        
       })
     } catch (error: any) {
       console.error("Failed to download PDF:", error)

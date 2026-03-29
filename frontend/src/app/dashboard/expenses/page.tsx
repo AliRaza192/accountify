@@ -89,7 +89,7 @@ export default function ExpensesPage() {
       toast({
         title: "Error",
         description: "Failed to load expenses",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)

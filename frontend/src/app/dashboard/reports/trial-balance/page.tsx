@@ -47,7 +47,7 @@ export default function TrialBalanceReportPage() {
       toast({
         title: "Error",
         description: "Failed to generate Trial Balance",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -58,7 +58,7 @@ export default function TrialBalanceReportPage() {
     toast({
       title: "Info",
       description: `${format.toUpperCase()} export coming soon`,
-      variant: "default",
+      
     })
   }
 

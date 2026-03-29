@@ -56,14 +56,14 @@ export default function SettingsPage() {
       toast({
         title: "Success",
         description: "Company settings saved successfully",
-        variant: "success",
+        
       })
     } catch (error: any) {
       console.error("Failed to save settings:", error)
       toast({
         title: "Error",
         description: "Failed to save company settings",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -74,7 +74,7 @@ export default function SettingsPage() {
     toast({
       title: "Info",
       description: "Logo upload coming soon",
-      variant: "default",
+      
     })
   }
 

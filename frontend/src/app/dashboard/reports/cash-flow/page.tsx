@@ -56,7 +56,7 @@ export default function CashFlowReportPage() {
       toast({
         title: "Error",
         description: "Failed to generate Cash Flow Statement",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -67,7 +67,7 @@ export default function CashFlowReportPage() {
     toast({
       title: "Info",
       description: `${format.toUpperCase()} export coming soon`,
-      variant: "default",
+      
     })
   }
 

@@ -148,7 +148,7 @@ export default function NewInvoicePage() {
       toast({
         title: "Error",
         description: "Please select a customer",
-        variant: "error",
+        
       })
       return
     }
@@ -157,7 +157,7 @@ export default function NewInvoicePage() {
       toast({
         title: "Error",
         description: "Please add at least one item",
-        variant: "error",
+        
       })
       return
     }
@@ -169,7 +169,7 @@ export default function NewInvoicePage() {
         toast({
           title: "Error",
           description: `Please select a product for item ${i + 1}`,
-          variant: "error",
+          
         })
         return
       }
@@ -177,7 +177,7 @@ export default function NewInvoicePage() {
         toast({
           title: "Error",
           description: `Quantity must be positive for item ${i + 1}`,
-          variant: "error",
+          
         })
         return
       }
@@ -185,7 +185,7 @@ export default function NewInvoicePage() {
         toast({
           title: "Error",
           description: `Rate cannot be negative for item ${i + 1}`,
-          variant: "error",
+          
         })
         return
       }
@@ -229,7 +229,7 @@ export default function NewInvoicePage() {
       toast({
         title: "Success",
         description: status === "draft" ? "Invoice saved as draft" : "Invoice created and confirmed",
-        variant: "success",
+        
       })
 
       router.push("/dashboard/sales/invoices")
@@ -238,7 +238,7 @@ export default function NewInvoicePage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || error.response?.data?.message || "Failed to create invoice",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)

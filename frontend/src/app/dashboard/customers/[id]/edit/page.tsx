@@ -86,7 +86,7 @@ export default function EditCustomerPage() {
       toast({
         title: "Error",
         description: "Failed to load customer details",
-        variant: "error",
+        
       })
       router.push("/dashboard/customers")
     } finally {
@@ -129,7 +129,7 @@ export default function EditCustomerPage() {
         toast({
           title: "Success",
           description: "Customer updated successfully",
-          variant: "success",
+          
         })
         router.push("/dashboard/customers")
       }
@@ -147,7 +147,7 @@ export default function EditCustomerPage() {
         toast({
           title: "Error",
           description: error.response?.data?.detail || "Failed to update customer",
-          variant: "error",
+          
         })
       }
     } finally {

@@ -104,7 +104,7 @@ export default function AIChatPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to get AI response",
-        variant: "error",
+        
       })
 
       // Add error message
@@ -143,7 +143,7 @@ export default function AIChatPage() {
     toast({
       title: "Success",
       description: "Chat history cleared",
-      variant: "success",
+      
     })
   }
 

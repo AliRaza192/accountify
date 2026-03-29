@@ -70,7 +70,7 @@ export default function ProductsPage() {
       toast({
         title: "Error",
         description: "Failed to load products",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -83,7 +83,7 @@ export default function ProductsPage() {
       toast({
         title: "Success",
         description: "Product deleted successfully",
-        variant: "success",
+        
       })
       fetchProducts()
       setDeleteConfirm(null)
@@ -92,7 +92,7 @@ export default function ProductsPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to delete product",
-        variant: "error",
+        
       })
     }
   }

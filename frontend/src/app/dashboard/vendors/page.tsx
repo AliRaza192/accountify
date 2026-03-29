@@ -56,7 +56,7 @@ export default function VendorsPage() {
       toast({
         title: "Error",
         description: "Failed to load vendors",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -69,7 +69,7 @@ export default function VendorsPage() {
       toast({
         title: "Success",
         description: "Vendor deleted successfully",
-        variant: "success",
+        
       })
       fetchVendors()
       setDeleteConfirm(null)
@@ -78,7 +78,7 @@ export default function VendorsPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to delete vendor",
-        variant: "error",
+        
       })
     }
   }

@@ -118,7 +118,7 @@ export default function DashboardPage() {
       toast({
         title: "Error",
         description: "Failed to load dashboard data",
-        variant: "error",
+        
       })
       
       // Set mock data for demo purposes

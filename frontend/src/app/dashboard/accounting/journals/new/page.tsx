@@ -86,7 +86,7 @@ export default function NewJournalEntryPage() {
       toast({
         title: "Warning",
         description: "Journal entry must have at least 2 lines",
-        variant: "destructive",
+        
       })
       return
     }
@@ -106,7 +106,7 @@ export default function NewJournalEntryPage() {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
-        variant: "error",
+        
       })
       return
     }
@@ -115,7 +115,7 @@ export default function NewJournalEntryPage() {
       toast({
         title: "Error",
         description: "Journal entry must have at least 2 lines",
-        variant: "error",
+        
       })
       return
     }
@@ -124,7 +124,7 @@ export default function NewJournalEntryPage() {
       toast({
         title: "Error",
         description: `Debit and Credit must be equal. Difference: ${formatCurrency(Math.abs(totalDebit - totalCredit))}`,
-        variant: "error",
+        
       })
       return
     }
@@ -136,7 +136,7 @@ export default function NewJournalEntryPage() {
         toast({
           title: "Error",
           description: `Please select an account for line ${i + 1}`,
-          variant: "error",
+          
         })
         return
       }
@@ -144,7 +144,7 @@ export default function NewJournalEntryPage() {
         toast({
           title: "Error",
           description: `Line ${i + 1} must have either a debit or credit amount`,
-          variant: "error",
+          
         })
         return
       }
@@ -181,7 +181,7 @@ export default function NewJournalEntryPage() {
       toast({
         title: "Success",
         description: isPosted ? "Journal entry posted successfully" : "Journal entry saved as draft",
-        variant: "success",
+        
       })
 
       router.push("/dashboard/accounting/journals")
@@ -190,7 +190,7 @@ export default function NewJournalEntryPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || error.response?.data?.message || "Failed to create journal entry",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)

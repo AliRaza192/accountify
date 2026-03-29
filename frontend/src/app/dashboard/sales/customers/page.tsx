@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "next/navigation"
+import { useEffect } from "react"
 
 export default function SalesCustomersPage() {
   useEffect(() => {

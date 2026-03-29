@@ -56,7 +56,7 @@ export default function CustomersPage() {
       toast({
         title: "Error",
         description: "Failed to load customers",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -69,7 +69,7 @@ export default function CustomersPage() {
       toast({
         title: "Success",
         description: "Customer deleted successfully",
-        variant: "success",
+        
       })
       fetchCustomers()
       setDeleteConfirm(null)
@@ -78,7 +78,7 @@ export default function CustomersPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to delete customer",
-        variant: "error",
+        
       })
     }
   }

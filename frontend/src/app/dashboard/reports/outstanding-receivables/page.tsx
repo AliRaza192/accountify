@@ -49,7 +49,7 @@ export default function OutstandingReceivablesPage() {
       toast({
         title: "Error",
         description: "Failed to load Outstanding Receivables",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -60,7 +60,7 @@ export default function OutstandingReceivablesPage() {
     toast({
       title: "Info",
       description: `Payment reminder will be sent to ${customerName}`,
-      variant: "default",
+      
     })
   }
 

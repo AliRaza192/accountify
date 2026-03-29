@@ -58,7 +58,7 @@ function RegisterFormContent() {
       toast({
         title: "Registration successful",
         description: "Welcome to AI Accounts!",
-        variant: "success",
+        
       })
 
       router.push("/dashboard")
@@ -66,7 +66,7 @@ function RegisterFormContent() {
       toast({
         title: "Registration failed",
         description: error.response?.data?.detail || error.response?.data?.message || "Something went wrong",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)

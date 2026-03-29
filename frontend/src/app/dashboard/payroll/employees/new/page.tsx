@@ -96,7 +96,7 @@ export default function NewEmployeePage() {
         toast({
           title: "Success",
           description: "Employee created successfully",
-          variant: "success",
+          
         })
         router.push("/dashboard/payroll")
       }
@@ -114,7 +114,7 @@ export default function NewEmployeePage() {
         toast({
           title: "Error",
           description: error.response?.data?.detail || "Failed to create employee",
-          variant: "error",
+          
         })
       }
     } finally {

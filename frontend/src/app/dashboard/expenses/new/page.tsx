@@ -95,7 +95,7 @@ export default function NewExpensePage() {
         toast({
           title: "Success",
           description: "Expense recorded successfully",
-          variant: "success",
+          
         })
         router.push("/dashboard/expenses")
       }
@@ -113,7 +113,7 @@ export default function NewExpensePage() {
         toast({
           title: "Error",
           description: error.response?.data?.detail || error.response?.data?.message || "Failed to create expense",
-          variant: "error",
+          
         })
       }
     } finally {

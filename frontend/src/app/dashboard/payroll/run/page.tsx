@@ -72,7 +72,7 @@ export default function RunPayrollPage() {
       toast({
         title: "Error",
         description: "Failed to load employees",
-        variant: "error",
+        
       })
     } finally {
       setIsLoading(false)
@@ -110,7 +110,7 @@ export default function RunPayrollPage() {
       toast({
         title: "Success",
         description: "Payroll processed successfully",
-        variant: "success",
+        
       })
       router.push("/dashboard/payroll")
     } catch (error: any) {
@@ -118,7 +118,7 @@ export default function RunPayrollPage() {
       toast({
         title: "Error",
         description: error.response?.data?.detail || "Failed to process payroll",
-        variant: "error",
+        
       })
     } finally {
       setIsProcessing(false)
