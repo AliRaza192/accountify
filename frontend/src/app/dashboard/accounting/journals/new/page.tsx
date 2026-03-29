@@ -86,7 +86,7 @@ export default function NewJournalEntryPage() {
       toast({
         title: "Warning",
         description: "Journal entry must have at least 2 lines",
-        variant: "default",
+        variant: "destructive",
       })
       return
     }
