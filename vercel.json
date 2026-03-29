@@ -6,12 +6,6 @@
   "installCommand": "npm install",
   "devCommand": "npm run dev",
   "regions": ["iad1"],
-  "env": {
-    "NEXT_PUBLIC_API_URL": {
-      "type": "encrypted",
-      "value": ""
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
