@@ -1,6 +1,11 @@
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="AI Accounts API",
@@ -8,20 +13,39 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-    ],
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-from app.routers import auth, companies, accounts, journals, customers, vendors, products, invoices, bills, inventory, reports, ai_chat, banking, payroll, pos
+
+@app.on_event("startup")
+async def startup_event():
+    """Handle application startup"""
+    logger.info("Starting AI Accounts API...")
+    try:
+        # Import routers on startup to catch import errors early
+        from app.routers import (
+            auth, companies, accounts, journals, customers, vendors,
+            products, invoices, bills, inventory, reports, ai_chat,
+            banking, payroll, pos
+        )
+        logger.info("All routers imported successfully")
+    except Exception as e:
+        logger.error(f"Failed to import routers: {e}")
+        raise
+
+
+# Import and include routers
+from app.routers import (
+    auth, companies, accounts, journals, customers, vendors,
+    products, invoices, bills, inventory, reports, ai_chat,
+    banking, payroll, pos
+)
 
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(companies.router, prefix="/api/companies", tags=["Companies"])
