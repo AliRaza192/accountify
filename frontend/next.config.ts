@@ -1,17 +1,7 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Output standalone for Docker/Vercel deployment
-  output: 'standalone',
-
-  // Enable React strict mode for better development experience
-  reactStrictMode: true,
-
-  // Image configuration for Supabase storage
+import type { NextConfig } from "next";
+const nextConfig: NextConfig = {
   images: {
-    domains: [
-      'gdhffydonndkxufylmjkr.supabase.co',
-      'supabase.co',
-    ],
     remotePatterns: [
       {
         protocol: 'https',
@@ -19,29 +9,7 @@ const nextConfig = {
       },
     ],
   },
-
-  // Environment variables
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-  },
-
-  // TypeScript configuration - ignore errors during build
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-
-  // ESLint configuration - ignore during build
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-
-  // Experimental features
-  experimental: {
-    // Enable server actions
-    serverActions: {
-      bodySizeLimit: '2mb',
-    },
-  },
-}
+};
+export default nextConfig;
 
 module.exports = nextConfig
