@@ -3,8 +3,21 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.config import settings
 
-# Supabase client for auth operations
-supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
+# Supabase client for auth operations (lazy initialization)
+_supabase_client: Client = None
+
+
+def get_supabase():
+    """Get Supabase client (lazy initialization)"""
+    global _supabase_client
+    if _supabase_client is None:
+        _supabase_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
+    return _supabase_client
+
+
+# For backward compatibility
+supabase = get_supabase()
+
 
 # SQLAlchemy engine for other database operations
 engine = create_engine(settings.DATABASE_URL)
