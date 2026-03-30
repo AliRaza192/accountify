@@ -1,3 +1,4 @@
+import logging
 from supabase import create_client, Client
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -24,12 +25,21 @@ def get_supabase():
     """Get Supabase client (lazy initialization)"""
     global _supabase_client
     if _supabase_client is None:
-        _supabase_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
+        try:
+            _supabase_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
+        except Exception:
+            # Return None if credentials are invalid - allows app to start for health checks
+            logger = logging.getLogger(__name__)
+            logger.warning("Supabase client initialization failed - check credentials")
+            return None
     return _supabase_client
 
 
-# For backward compatibility - initialize on import
-supabase = get_supabase()
+# For backward compatibility - lazy initialization
+def __getattr__(name):
+    if name == "supabase":
+        return get_supabase()
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
 # SQLAlchemy engine for other database operations with SSL support
