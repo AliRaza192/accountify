@@ -42,19 +42,35 @@ def __getattr__(name):
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
-# SQLAlchemy engine for other database operations with SSL support
-engine = create_engine(
-    settings.DATABASE_URL,
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20
-)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# SQLAlchemy engine - lazy initialization to avoid blocking startup
+_engine = None
+_SessionLocal = None
+
+
+def get_engine():
+    """Get SQLAlchemy engine (lazy initialization)"""
+    global _engine
+    if _engine is None:
+        _engine = create_engine(
+            settings.DATABASE_URL,
+            pool_pre_ping=True,
+            pool_size=10,
+            max_overflow=20
+        )
+    return _engine
+
+
+def get_session_local():
+    """Get SessionLocal class (lazy initialization)"""
+    global _SessionLocal
+    if _SessionLocal is None:
+        _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=get_engine())
+    return _SessionLocal
 
 
 def get_db():
     """Dependency for getting SQLAlchemy database session"""
-    db = SessionLocal()
+    db = get_session_local()()
     try:
         yield db
     finally:

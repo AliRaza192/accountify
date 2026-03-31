@@ -11,6 +11,8 @@ app = FastAPI(
     title="AI Accounts API",
     description="AI-Native Accounting System for Pakistani Businesses",
     version="1.0.0",
+    docs_url=None,
+    redoc_url=None,
 )
 
 # CORS middleware
@@ -71,4 +73,19 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    """Basic health check - no database dependency"""
+    return {"status": "healthy", "service": "ai-accounts-api"}
+
+
+@app.get("/health/ready")
+async def readiness_check():
+    """Readiness check - includes database connectivity"""
+    try:
+        from app.database import get_engine
+        engine = get_engine()
+        with engine.connect() as conn:
+            conn.execute("SELECT 1")
+        return {"status": "ready", "database": "connected"}
+    except Exception as e:
+        logger.error(f"Database connection failed: {e}")
+        return {"status": "not_ready", "database": "disconnected"}
