@@ -129,4 +129,5 @@ async def root():
 
 @app.get("/health")
 async def health_check():
+    logger.info("Healthcheck called - returning healthy status")
     return {"status": "healthy"}
