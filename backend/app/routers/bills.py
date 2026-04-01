@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from supabase import create_client, Client
 import logging
@@ -117,7 +117,7 @@ class PaymentResponse(BaseModel):
 
 def get_next_bill_number(supabase: Client, company_id: str) -> str:
     """Generate next bill number in format BILL-YYYYMMDD-0001"""
-    today = datetime.utcnow().strftime("%Y%m%d")
+    today = datetime.now(timezone.utc).strftime("%Y%m%d")
     prefix = f"BILL-{today}-"
     
     count_response = supabase.table("bills").select("bill_number", count="exact").eq("company_id", company_id).eq("is_deleted", False).execute()
@@ -380,7 +380,7 @@ async def update_bill(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot update bill that is not in draft status")
 
     update_data = bill_data.model_dump(exclude_unset=True)
-    update_data["updated_at"] = datetime.utcnow().isoformat()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     # If items are being updated, recalculate totals
     if bill_data.items is not None:
@@ -450,7 +450,7 @@ async def confirm_bill(
     # Update bill status
     response = supabase.table("bills").update({
         "status": "confirmed",
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", str(bill_id)).execute()
 
     if not response.data or len(response.data) == 0:
@@ -570,7 +570,7 @@ async def record_payment(
         "amount_paid": float(new_paid),
         "balance_due": float(new_balance),
         "status": new_status,
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", str(bill_id)).execute()
 
     # Create payment record
@@ -676,7 +676,7 @@ async def delete_bill(
 
     response = supabase.table("bills").update({
         "is_deleted": True,
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", str(bill_id)).execute()
 
     return {"success": True, "message": "Bill deleted successfully"}

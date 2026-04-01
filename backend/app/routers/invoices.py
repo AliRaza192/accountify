@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from supabase import create_client, Client
 import logging
@@ -117,7 +117,7 @@ class PaymentResponse(BaseModel):
 
 def get_next_invoice_number(supabase: Client, company_id: str) -> str:
     """Generate next invoice number in format INV-YYYYMMDD-0001"""
-    today = datetime.utcnow().strftime("%Y%m%d")
+    today = datetime.now(timezone.utc).strftime("%Y%m%d")
     prefix = f"INV-{today}-"
     
     # Count invoices for today
@@ -381,7 +381,7 @@ async def update_invoice(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot update invoice that is not in draft status")
 
     update_data = invoice_data.model_dump(exclude_unset=True)
-    update_data["updated_at"] = datetime.utcnow().isoformat()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     # If items are being updated, recalculate totals
     if invoice_data.items is not None:
@@ -451,7 +451,7 @@ async def confirm_invoice(
     # Update invoice status
     response = supabase.table("invoices").update({
         "status": "confirmed",
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", str(invoice_id)).execute()
 
     if not response.data or len(response.data) == 0:
@@ -574,7 +574,7 @@ async def record_payment(
         "amount_paid": float(new_paid),
         "balance_due": float(new_balance),
         "status": new_status,
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", str(invoice_id)).execute()
 
     # Create payment record
@@ -682,7 +682,7 @@ async def delete_invoice(
 
     response = supabase.table("invoices").update({
         "is_deleted": True,
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", str(invoice_id)).execute()
 
     return {"success": True, "message": "Invoice deleted successfully"}

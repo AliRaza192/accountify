@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 from decimal import Decimal
 from uuid import uuid4
 import sys
@@ -73,23 +73,11 @@ def mock_current_user():
     )
 
 
-@pytest.fixture
-def mock_supabase():
-    """Mock supabase client for all tests"""
-    with patch('app.routers.auth.supabase') as mock:
-        yield mock
-
-
 class TestListCustomers:
     """Test GET /api/customers - List all customers"""
 
-    @patch('app.routers.customers.get_supabase_client')
-    @patch('app.routers.customers.get_current_user')
-    def test_list_customers_success(self, mock_get_current_user, mock_get_supabase, auth_headers, mock_current_user):
+    def test_list_customers_success(self, override_dependencies, auth_headers, mock_supabase):
         """Test listing customers with valid authentication"""
-        # Mock current user
-        mock_get_current_user.return_value = mock_current_user
-        
         # Mock customers list
         mock_customer_data = create_mock_customer()
         mock_query = MagicMock()
@@ -100,7 +88,7 @@ class TestListCustomers:
             data=[mock_customer_data],
             count=1
         )
-        mock_get_supabase.return_value.table.return_value = mock_query
+        mock_supabase.table.return_value = mock_query
 
         response = client.get("/api/customers", headers=auth_headers)
 
@@ -112,12 +100,8 @@ class TestListCustomers:
         assert len(data["data"]) == 1
         assert data["data"][0]["name"] == "Test Customer"
 
-    @patch('app.routers.customers.get_supabase_client')
-    @patch('app.routers.customers.get_current_user')
-    def test_list_customers_with_search(self, mock_get_current_user, mock_get_supabase, auth_headers, mock_current_user):
+    def test_list_customers_with_search(self, override_dependencies, auth_headers, mock_supabase):
         """Test listing customers with search parameter"""
-        mock_get_current_user.return_value = mock_current_user
-        
         # Mock customers list with search
         mock_customer_data = create_mock_customer()
         mock_query = MagicMock()
@@ -129,7 +113,7 @@ class TestListCustomers:
             data=[mock_customer_data],
             count=1
         )
-        mock_get_supabase.return_value.table.return_value = mock_query
+        mock_supabase.table.return_value = mock_query
 
         response = client.get("/api/customers?search=Test", headers=auth_headers)
 
@@ -138,21 +122,30 @@ class TestListCustomers:
         assert data["success"] is True
         assert len(data["data"]) == 1
 
-    @patch('app.routers.customers.get_current_user')
-    def test_list_customers_no_company(self, mock_get_current_user, auth_headers):
+    def test_list_customers_no_company(self, auth_headers, mock_supabase):
         """Test listing customers when user has no company"""
-        # Mock current user with no company
-        mock_get_current_user.return_value = User(
-            id="test-user-id",
-            email="test@example.com",
-            full_name="Test User",
-            company_id=None,
-            company_name=None
-        )
+        from app.main import app
+        from app.routers import customers
+        from app.types import User
+
+        # Override with user that has no company
+        async def mock_get_current_user_no_company():
+            return User(
+                id="test-user-id",
+                email="test@example.com",
+                full_name="Test User",
+                company_id=None,
+                company_name=None
+            )
+
+        app.dependency_overrides[customers.get_current_user] = mock_get_current_user_no_company
 
         response = client.get("/api/customers", headers=auth_headers)
 
         assert response.status_code == 400
+
+        # Clean up
+        app.dependency_overrides.clear()
 
     def test_list_customers_unauthorized(self, auth_headers):
         """Test listing customers without valid token"""
@@ -164,25 +157,21 @@ class TestListCustomers:
 class TestCreateCustomer:
     """Test POST /api/customers - Create new customer"""
 
-    @patch('app.routers.customers.get_supabase_client')
-    @patch('app.routers.customers.get_current_user')
-    def test_create_customer_success(self, mock_get_current_user, mock_get_supabase, auth_headers, mock_current_user):
+    def test_create_customer_success(self, override_dependencies, auth_headers, mock_supabase):
         """Test creating customer with valid data"""
-        mock_get_current_user.return_value = mock_current_user
-        
         # Mock duplicate check (no duplicates)
         mock_check_query = MagicMock()
         mock_check_query.select.return_value = mock_check_query
         mock_check_query.eq.return_value = mock_check_query
         mock_check_query.execute.return_value = MagicMock(data=[])
-        
+
         # Mock insert
         mock_customer_data = create_mock_customer()
         mock_insert_query = MagicMock()
         mock_insert_query.insert.return_value = mock_insert_query
         mock_insert_query.execute.return_value = MagicMock(data=[mock_customer_data])
-        
-        mock_get_supabase.return_value.table.side_effect = [
+
+        mock_supabase.table.side_effect = [
             mock_check_query,  # First call for duplicate check
             mock_insert_query  # Second call for insert
         ]
@@ -206,19 +195,15 @@ class TestCreateCustomer:
         assert data["data"]["email"] == "test@example.com"
         assert data["message"] == "Customer created successfully"
 
-    @patch('app.routers.customers.get_supabase_client')
-    @patch('app.routers.customers.get_current_user')
-    def test_create_customer_duplicate_email(self, mock_get_current_user, mock_get_supabase, auth_headers, mock_current_user):
+    def test_create_customer_duplicate_email(self, override_dependencies, auth_headers, mock_supabase):
         """Test creating customer with duplicate email"""
-        mock_get_current_user.return_value = mock_current_user
-        
         # Mock duplicate check (duplicate exists)
         mock_query = MagicMock()
         mock_query.select.return_value = mock_query
         mock_query.eq.return_value = mock_query
         mock_query.execute.return_value = MagicMock(data=[{"id": "existing-id"}])
-        
-        mock_get_supabase.return_value.table.return_value = mock_query
+
+        mock_supabase.table.return_value = mock_query
 
         customer_data = {
             "name": "Test Customer",
@@ -233,11 +218,8 @@ class TestCreateCustomer:
         assert "detail" in data
         assert "already exists" in data["detail"]
 
-    @patch('app.routers.customers.get_current_user')
-    def test_create_customer_missing_name(self, mock_get_current_user, auth_headers):
+    def test_create_customer_missing_name(self, override_dependencies, auth_headers):
         """Test creating customer without required name field"""
-        mock_get_current_user.return_value = mock_current_user
-
         customer_data = {
             "email": "test@example.com",
             "phone": "+92-300-1234567"
@@ -247,11 +229,8 @@ class TestCreateCustomer:
 
         assert response.status_code == 422  # Validation error
 
-    @patch('app.routers.customers.get_current_user')
-    def test_create_customer_invalid_email(self, mock_get_current_user, auth_headers):
+    def test_create_customer_invalid_email(self, override_dependencies, auth_headers):
         """Test creating customer with invalid email format"""
-        mock_get_current_user.return_value = mock_current_user
-
         customer_data = {
             "name": "Test Customer",
             "email": "invalid-email",
@@ -262,16 +241,23 @@ class TestCreateCustomer:
 
         assert response.status_code == 422  # Validation error
 
-    @patch('app.routers.customers.get_current_user')
-    def test_create_customer_no_company(self, mock_get_current_user, auth_headers):
+    def test_create_customer_no_company(self, auth_headers, mock_supabase):
         """Test creating customer when user has no company"""
-        mock_get_current_user.return_value = User(
-            id="test-user-id",
-            email="test@example.com",
-            full_name="Test User",
-            company_id=None,
-            company_name=None
-        )
+        from app.main import app
+        from app.routers import customers
+        from app.types import User
+
+        # Override with user that has no company
+        async def mock_get_current_user_no_company():
+            return User(
+                id="test-user-id",
+                email="test@example.com",
+                full_name="Test User",
+                company_id=None,
+                company_name=None
+            )
+
+        app.dependency_overrides[customers.get_current_user] = mock_get_current_user_no_company
 
         customer_data = {
             "name": "Test Customer",
@@ -282,26 +268,25 @@ class TestCreateCustomer:
 
         assert response.status_code == 400
 
+        # Clean up
+        app.dependency_overrides.clear()
+
 
 class TestGetCustomer:
     """Test GET /api/customers/{customer_id} - Get customer details"""
 
-    @patch('app.routers.customers.get_supabase_client')
-    @patch('app.routers.customers.get_current_user')
-    def test_get_customer_success(self, mock_get_current_user, mock_get_supabase, auth_headers, mock_current_user):
+    def test_get_customer_success(self, override_dependencies, auth_headers, mock_supabase):
         """Test getting customer details"""
-        mock_get_current_user.return_value = mock_current_user
-        
-        # Mock get customer
-        mock_customer_data = create_mock_customer()
+        # Mock get customer - use fixed ID for assertion
+        customer_id = uuid4()
+        mock_customer_data = create_mock_customer(customer_id=customer_id)
         mock_query = MagicMock()
         mock_query.select.return_value = mock_query
         mock_query.eq.return_value = mock_query
         mock_query.execute.return_value = MagicMock(data=[mock_customer_data])
-        
-        mock_get_supabase.return_value.table.return_value = mock_query
 
-        customer_id = uuid4()
+        mock_supabase.table.return_value = mock_query
+
         response = client.get(f"/api/customers/{customer_id}", headers=auth_headers)
 
         assert response.status_code == 200
@@ -310,26 +295,22 @@ class TestGetCustomer:
         assert data["data"]["id"] == str(customer_id)
         assert data["data"]["name"] == "Test Customer"
 
-    @patch('app.routers.customers.get_supabase_client')
-    @patch('app.routers.customers.get_current_user')
-    def test_get_customer_not_found(self, mock_get_current_user, mock_get_supabase, auth_headers, mock_current_user):
+    def test_get_customer_not_found(self, override_dependencies, auth_headers, mock_supabase):
         """Test getting non-existent customer"""
-        mock_get_current_user.return_value = mock_current_user
-        
         # Mock empty result
         mock_query = MagicMock()
         mock_query.select.return_value = mock_query
         mock_query.eq.return_value = mock_query
         mock_query.execute.return_value = MagicMock(data=[])
-        
-        mock_get_supabase.return_value.table.return_value = mock_query
+
+        mock_supabase.table.return_value = mock_query
 
         customer_id = uuid4()
         response = client.get(f"/api/customers/{customer_id}", headers=auth_headers)
 
         assert response.status_code == 404
 
-    def test_get_customer_invalid_uuid(self, auth_headers):
+    def test_get_customer_invalid_uuid(self, override_dependencies, auth_headers):
         """Test getting customer with invalid UUID format"""
         response = client.get("/api/customers/invalid-uuid", headers=auth_headers)
 
@@ -339,28 +320,24 @@ class TestGetCustomer:
 class TestUpdateCustomer:
     """Test PUT /api/customers/{customer_id} - Update customer"""
 
-    @patch('app.routers.customers.get_supabase_client')
-    @patch('app.routers.customers.get_current_user')
-    def test_update_customer_success(self, mock_get_current_user, mock_get_supabase, auth_headers, mock_current_user):
+    def test_update_customer_success(self, override_dependencies, auth_headers, mock_supabase):
         """Test updating customer successfully"""
-        mock_get_current_user.return_value = mock_current_user
-        
         # Mock existing customer
         mock_customer_data = create_mock_customer()
-        
+
         # Mock get existing
         mock_get_query = MagicMock()
         mock_get_query.select.return_value = mock_get_query
         mock_get_query.eq.return_value = mock_get_query
         mock_get_query.execute.return_value = MagicMock(data=[mock_customer_data])
-        
+
         # Mock update
         mock_update_query = MagicMock()
         mock_update_query.update.return_value = mock_update_query
         mock_update_query.eq.return_value = mock_update_query
         mock_update_query.execute.return_value = MagicMock(data=[mock_customer_data])
-        
-        mock_get_supabase.return_value.table.side_effect = [
+
+        mock_supabase.table.side_effect = [
             mock_get_query,
             mock_update_query
         ]
@@ -378,19 +355,15 @@ class TestUpdateCustomer:
         assert data["success"] is True
         assert data["message"] == "Customer updated successfully"
 
-    @patch('app.routers.customers.get_supabase_client')
-    @patch('app.routers.customers.get_current_user')
-    def test_update_customer_not_found(self, mock_get_current_user, mock_get_supabase, auth_headers, mock_current_user):
+    def test_update_customer_not_found(self, override_dependencies, auth_headers, mock_supabase):
         """Test updating non-existent customer"""
-        mock_get_current_user.return_value = mock_current_user
-        
         # Mock empty result
         mock_query = MagicMock()
         mock_query.select.return_value = mock_query
         mock_query.eq.return_value = mock_query
         mock_query.execute.return_value = MagicMock(data=[])
-        
-        mock_get_supabase.return_value.table.return_value = mock_query
+
+        mock_supabase.table.return_value = mock_query
 
         customer_id = uuid4()
         update_data = {"name": "Updated Name"}
@@ -399,7 +372,7 @@ class TestUpdateCustomer:
 
         assert response.status_code == 404
 
-    def test_update_customer_invalid_email(self, auth_headers):
+    def test_update_customer_invalid_email(self, override_dependencies, auth_headers):
         """Test updating customer with invalid email"""
         response = client.put(f"/api/customers/{uuid4()}", json={"email": "invalid-email"}, headers=auth_headers)
 
@@ -409,28 +382,24 @@ class TestUpdateCustomer:
 class TestDeleteCustomer:
     """Test DELETE /api/customers/{customer_id} - Delete customer"""
 
-    @patch('app.routers.customers.get_supabase_client')
-    @patch('app.routers.customers.get_current_user')
-    def test_delete_customer_success(self, mock_get_current_user, mock_get_supabase, auth_headers, mock_current_user):
+    def test_delete_customer_success(self, override_dependencies, auth_headers, mock_supabase):
         """Test soft deleting customer"""
-        mock_get_current_user.return_value = mock_current_user
-        
         # Mock existing customer
         mock_customer_data = create_mock_customer()
-        
+
         # Mock get existing
         mock_get_query = MagicMock()
         mock_get_query.select.return_value = mock_get_query
         mock_get_query.eq.return_value = mock_get_query
         mock_get_query.execute.return_value = MagicMock(data=[mock_customer_data])
-        
+
         # Mock update (soft delete)
         mock_update_query = MagicMock()
         mock_update_query.update.return_value = mock_update_query
         mock_update_query.eq.return_value = mock_update_query
         mock_update_query.execute.return_value = MagicMock(data=[mock_customer_data])
-        
-        mock_get_supabase.return_value.table.side_effect = [
+
+        mock_supabase.table.side_effect = [
             mock_get_query,
             mock_update_query
         ]
@@ -443,19 +412,15 @@ class TestDeleteCustomer:
         assert data["success"] is True
         assert data["message"] == "Customer deleted successfully"
 
-    @patch('app.routers.customers.get_supabase_client')
-    @patch('app.routers.customers.get_current_user')
-    def test_delete_customer_not_found(self, mock_get_current_user, mock_get_supabase, auth_headers, mock_current_user):
+    def test_delete_customer_not_found(self, override_dependencies, auth_headers, mock_supabase):
         """Test deleting non-existent customer"""
-        mock_get_current_user.return_value = mock_current_user
-        
         # Mock empty result
         mock_query = MagicMock()
         mock_query.select.return_value = mock_query
         mock_query.eq.return_value = mock_query
         mock_query.execute.return_value = MagicMock(data=[])
-        
-        mock_get_supabase.return_value.table.return_value = mock_query
+
+        mock_supabase.table.return_value = mock_query
 
         customer_id = uuid4()
         response = client.delete(f"/api/customers/{customer_id}", headers=auth_headers)
@@ -466,17 +431,8 @@ class TestDeleteCustomer:
 class TestCustomerValidation:
     """Test customer data validation"""
 
-    @patch('app.routers.customers.get_current_user')
-    def test_customer_name_min_length(self, mock_get_current_user, auth_headers):
+    def test_customer_name_min_length(self, override_dependencies, auth_headers):
         """Test customer name minimum length validation"""
-        mock_get_current_user.return_value = User(
-            id="test-user-id",
-            email="test@example.com",
-            full_name="Test User",
-            company_id="test-company-id",
-            company_name="Test Company"
-        )
-
         customer_data = {
             "name": "AB",  # Less than 3 characters
             "email": "test@example.com"
@@ -484,20 +440,17 @@ class TestCustomerValidation:
 
         response = client.post("/api/customers", json=customer_data, headers=auth_headers)
 
-        assert response.status_code == 422
+        # Returns 400 from business logic validation (name length check in router)
+        assert response.status_code == 400
 
-    @patch('app.routers.customers.get_supabase_client')
-    @patch('app.routers.customers.get_current_user')
-    def test_customer_credit_limit_decimal(self, mock_get_current_user, mock_get_supabase, auth_headers, mock_current_user):
+    def test_customer_credit_limit_decimal(self, override_dependencies, auth_headers, mock_supabase):
         """Test credit limit accepts decimal values"""
-        mock_get_current_user.return_value = mock_current_user
-        
         # Mock duplicate check
-        mock_get_supabase.return_value.table.return_value.select.return_value.eq.return_value.execute.return_value = MagicMock(data=[])
-        
+        mock_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = MagicMock(data=[])
+
         # Mock insert
         mock_customer_data = create_mock_customer()
-        mock_get_supabase.return_value.table.return_value.insert.return_value.execute.return_value = MagicMock(data=[mock_customer_data])
+        mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(data=[mock_customer_data])
 
         customer_data = {
             "name": "Test Customer",
@@ -514,27 +467,23 @@ class TestCustomerValidation:
 class TestCustomerBusinessRules:
     """Test customer business rules"""
 
-    @patch('app.routers.customers.get_supabase_client')
-    @patch('app.routers.customers.get_current_user')
-    def test_customer_soft_delete_preserves_data(self, mock_get_current_user, mock_get_supabase, auth_headers, mock_current_user):
+    def test_customer_soft_delete_preserves_data(self, override_dependencies, auth_headers, mock_supabase):
         """Test that soft delete preserves historical data"""
-        mock_get_current_user.return_value = mock_current_user
-        
         # Mock existing customer
         mock_customer_data = create_mock_customer()
-        
+
         # Mock get existing
         mock_get_query = MagicMock()
         mock_get_query.select.return_value = mock_get_query
         mock_get_query.eq.return_value = mock_get_query
         mock_get_query.execute.return_value = MagicMock(data=[mock_customer_data])
-        
+
         # Mock update (soft delete)
         mock_update_query = MagicMock()
         mock_update_query.update.return_value = mock_update_query
         mock_update_query.eq.return_value = mock_update_query
-        
-        mock_get_supabase.return_value.table.side_effect = [
+
+        mock_supabase.table.side_effect = [
             mock_get_query,
             mock_update_query
         ]
@@ -543,7 +492,7 @@ class TestCustomerBusinessRules:
         response = client.delete(f"/api/customers/{customer_id}", headers=auth_headers)
 
         assert response.status_code == 200
-        
+
         # Verify update was called with is_deleted=True (soft delete)
         mock_update_query.update.assert_called_once()
         call_args = mock_update_query.update.call_args[0][0]

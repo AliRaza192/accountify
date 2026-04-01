@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from supabase import create_client, Client
 
@@ -358,10 +358,10 @@ async def get_dashboard(current_user: User = Depends(get_current_user)):
     if not current_user.company_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
 
-    from datetime import datetime, timedelta
+    from datetime import datetime, timezone, timedelta
 
     # Get current month start and end
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     if now.month == 12:
         month_end = now.replace(year=now.year + 1, month=1, day=1)
@@ -1029,8 +1029,8 @@ async def get_outstanding_receivables(
     if not current_user.company_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
 
-    now = datetime.utcnow()
-    week_from_now = datetime.utcnow().replace(day=now.day + 7) if now.day + 7 <= 28 else datetime.utcnow()
+    now = datetime.now(timezone.utc)
+    week_from_now = datetime.now(timezone.utc).replace(day=now.day + 7) if now.day + 7 <= 28 else datetime.now(timezone.utc)
 
     # Get unpaid/partial invoices
     invoices_response = supabase.table("invoices").select("*").eq("company_id", str(current_user.company_id)).eq("is_deleted", False).in_("status", ["pending", "partial", "confirmed"]).order("due_date").execute()

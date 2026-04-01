@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 from supabase import create_client, Client
 
 from app.config import settings
@@ -115,7 +115,7 @@ async def update_account(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
     
     update_data = account_data.model_dump(exclude_unset=True)
-    update_data["updated_at"] = datetime.utcnow().isoformat()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     if "parent_id" in update_data and update_data["parent_id"]:
         update_data["parent_id"] = str(update_data["parent_id"])
     
@@ -142,7 +142,7 @@ async def delete_account(
     if not existing.data or len(existing.data) == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
     
-    response = supabase.table("accounts").update({"is_deleted": True, "updated_at": datetime.utcnow().isoformat()}).eq("id", str(account_id)).execute()
+    response = supabase.table("accounts").update({"is_deleted": True, "updated_at": datetime.now(timezone.utc).isoformat()}).eq("id", str(account_id)).execute()
     
     return {"success": True, "message": "Account deleted successfully"}
 

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone, timezone
 from decimal import Decimal
 from supabase import create_client, Client
 
@@ -153,8 +153,8 @@ async def update_customer(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")
     
     update_data = customer_data.model_dump(exclude_unset=True)
-    update_data["updated_at"] = datetime.utcnow().isoformat()
-    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+
     response = supabase.table("customers").update(update_data).eq("id", str(customer_id)).execute()
     
     if not response.data or len(response.data) == 0:
@@ -180,7 +180,7 @@ async def delete_customer(
     
     response = supabase.table("customers").update({
         "is_deleted": True,
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", str(customer_id)).execute()
     
     return {"success": True, "message": "Customer deleted successfully"}

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 from supabase import create_client, Client
 
 from app.config import settings
@@ -185,7 +185,7 @@ async def create_stock_adjustment(
         
         update_data = {
             "quantity": new_qty,
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": datetime.now(timezone.utc).isoformat()
         }
         
         update_query = supabase.table("inventory").update(update_data).eq("id", existing_response.data[0]["id"])
@@ -247,7 +247,7 @@ async def transfer_stock(
     
     supabase.table("inventory").update({
         "quantity": current_qty - transfer_data.quantity,
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", from_inventory.data[0]["id"]).execute()
     
     to_inventory = supabase.table("inventory").select("*").eq("product_id", str(transfer_data.product_id)).eq("warehouse_id", str(transfer_data.to_warehouse_id)).eq("company_id", current_user.company_id).eq("is_deleted", False).execute()
@@ -256,7 +256,7 @@ async def transfer_stock(
         new_qty = to_inventory.data[0]["quantity"] + transfer_data.quantity
         supabase.table("inventory").update({
             "quantity": new_qty,
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": datetime.now(timezone.utc).isoformat()
         }).eq("id", to_inventory.data[0]["id"]).execute()
     else:
         insert_data = {

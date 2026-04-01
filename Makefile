@@ -1,18 +1,25 @@
-.PHONY: install dev build clean
+.PHONY: install dev build clean test test-backend
 
 install:
 	@echo "Installing backend dependencies..."
-	cd backend && python -m venv venv && source venv/bin/activate && pip install -r requirements.txt
+	cd backend && python -m venv venv && . venv/bin/activate && pip install -r requirements.txt
 	@echo "Installing frontend dependencies..."
 	cd frontend && npm install
 	@echo "Installation complete!"
 
 dev:
 	@echo "Starting backend server on port 8000..."
-	cd backend && source venv/bin/activate && uvicorn app.main:app --reload --port 8000 &
+	cd backend && . venv/bin/activate && uvicorn app.main:app --reload --port 8000 &
 	@echo "Starting frontend server on port 3000..."
 	cd frontend && npm run dev
 	@echo "Development servers running!"
+
+test: test-backend
+	@echo "All tests completed!"
+
+test-backend:
+	@echo "Running backend tests..."
+	cd backend && . venv/bin/activate && python -m pytest tests/ -v
 
 build:
 	@echo "Building frontend for production..."

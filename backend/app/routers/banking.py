@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 import logging
 
@@ -246,7 +246,7 @@ async def create_transaction(
 
     supabase.table("bank_accounts").update({
         "balance": float(new_balance),
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", str(account_id)).execute()
 
     return {
@@ -312,7 +312,7 @@ async def reconcile_transactions(
     for txn_id in reconcile_data.transaction_ids:
         response = supabase.table("bank_transactions").update({
             "is_reconciled": True,
-            "reconciled_at": datetime.utcnow().isoformat()
+            "reconciled_at": datetime.now(timezone.utc).isoformat()
         }).eq("id", str(txn_id)).eq("bank_account_id", str(account_id)).execute()
 
         if response.data and len(response.data) > 0:
@@ -341,7 +341,7 @@ async def delete_bank_account(
 
     response = supabase.table("bank_accounts").update({
         "is_deleted": True,
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", str(account_id)).execute()
 
     return {"success": True, "message": "Bank account deleted successfully"}

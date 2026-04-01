@@ -3,7 +3,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 from supabase import AuthError
 from jose import JWTError, jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import logging
 
 from app.database import supabase

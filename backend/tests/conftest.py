@@ -38,11 +38,48 @@ def mock_supabase():
     from app.routers import auth
 
     mock_client = MagicMock()
-    
+
     # Mock the supabase client in database module
     database._supabase_client = mock_client
-    
+
     # Also patch the supabase import in auth router
     with patch.object(database, 'supabase', mock_client):
         with patch.object(auth, 'supabase', mock_client):
             yield mock_client
+
+
+@pytest.fixture
+def override_dependencies():
+    """Override FastAPI dependencies for customers router tests"""
+    from app.main import app
+    from app.routers import customers
+    from app.types import User
+    from uuid import uuid4
+
+    # Create a mock current user
+    mock_user = User(
+        id="test-user-id",
+        email="test@example.com",
+        full_name="Test User",
+        role="user",
+        company_id="test-company-id",
+        company_name="Test Company"
+    )
+
+    # Override get_current_user dependency
+    async def mock_get_current_user():
+        return mock_user
+
+    # Override get_supabase_client dependency
+    def mock_get_supabase_client():
+        from app import database
+        return database._supabase_client
+
+    # Apply overrides
+    app.dependency_overrides[customers.get_current_user] = mock_get_current_user
+    app.dependency_overrides[customers.get_supabase_client] = mock_get_supabase_client
+
+    yield mock_user
+
+    # Clean up overrides after test
+    app.dependency_overrides.clear()

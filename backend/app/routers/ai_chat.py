@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 import logging
 import os
@@ -62,7 +62,7 @@ def get_company_context(company_id: str) -> str:
             context_parts.append(f"Currency: {company['currency']}")
         
         # Get current month dates
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         if now.month == 12:
             month_end = now.replace(year=now.year + 1, month=1, day=1)

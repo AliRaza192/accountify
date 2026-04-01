@@ -6,7 +6,7 @@ Provides common columns and methods for all models
 from sqlalchemy import Column, DateTime, func
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID, uuid4
 

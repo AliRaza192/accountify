@@ -8,7 +8,7 @@ import asyncio
 import json
 import logging
 from typing import Optional, Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 import google.generativeai as genai
 from app.config import settings

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 import logging
 
@@ -202,7 +202,7 @@ async def update_employee(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
 
     update_data = employee_data.model_dump(exclude_unset=True)
-    update_data["updated_at"] = datetime.utcnow().isoformat()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     response = supabase.table("employees").update(update_data).eq("id", str(employee_id)).execute()
 
@@ -300,7 +300,7 @@ async def run_payroll(
         "total_employees": employees_processed,
         "total_amount": float(total_amount),
         "status": "processed",
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", payroll_run_id).execute()
 
     # Create journal entry
@@ -327,7 +327,7 @@ async def run_payroll(
         if salary_expense_id and cash_account_id:
             journal_data = {
                 "company_id": str(current_user.company_id),
-                "date": datetime.utcnow().isoformat(),
+                "date": datetime.now(timezone.utc).isoformat(),
                 "reference_type": "payroll",
                 "reference_id": payroll_run_id,
                 "description": f"Payroll for month {payroll_data.month}/{payroll_data.year}",

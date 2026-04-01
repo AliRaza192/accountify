@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from supabase import create_client, Client
 
@@ -281,7 +281,7 @@ async def update_journal(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot update posted journal entry")
     
     update_data = journal_data.model_dump(exclude_unset=True)
-    update_data["updated_at"] = datetime.utcnow().isoformat()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
     if journal_data.lines:
         validate_journal_lines(journal_data.lines)
@@ -351,7 +351,7 @@ async def post_journal(
     
     response = supabase.table("journal_entries").update({
         "is_posted": True,
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", str(entry_id)).execute()
     
     if not response.data or len(response.data) == 0:
@@ -406,7 +406,7 @@ async def delete_journal(
     
     response = supabase.table("journal_entries").update({
         "is_deleted": True,
-        "updated_at": datetime.utcnow().isoformat()
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }).eq("id", str(entry_id)).execute()
     
     return {"success": True, "message": "Journal entry deleted successfully"}

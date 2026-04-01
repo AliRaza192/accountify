@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
@@ -7,18 +8,23 @@ from app.config import settings
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle application lifespan events"""
+    # Startup
+    logger.info("Starting AI Accounts API...")
+    yield
+    # Shutdown
+    logger.info("Shutting down AI Accounts API...")
+
+
 app = FastAPI(
     title="AI Accounts API",
     description="AI-Native Accounting System for Pakistani Businesses",
     version="1.0.0",
+    lifespan=lifespan,
 )
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Handle application startup"""
-    logger.info("Starting AI Accounts API...")
-
 
 # CORS middleware
 app.add_middleware(

@@ -4,7 +4,7 @@ Provides common fields for all schemas (company_id, timestamps)
 """
 
 from pydantic import BaseModel, Field, ConfigDict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 

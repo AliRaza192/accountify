@@ -182,7 +182,7 @@ async def generate_tax_return(
             raise HTTPException(status_code=400, detail="Tax return already exists for this period")
         
         # Calculate output tax from invoices
-        from datetime import datetime
+        from datetime import datetime, timezone
         start_date = date(generate_data.return_period_year, generate_data.return_period_month, 1)
         if generate_data.return_period_month == 12:
             end_date = date(generate_data.return_period_year + 1, 1, 1)

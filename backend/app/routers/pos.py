@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 import logging
 
@@ -106,7 +106,7 @@ async def process_pos_sale(
     total = subtotal + tax_total - sale_data.discount
 
     # Generate invoice number
-    today = datetime.utcnow().strftime("%Y%m%d")
+    today = datetime.now(timezone.utc).strftime("%Y%m%d")
     count_response = supabase.table("invoices").select("invoice_number", count="exact").eq("company_id", str(current_user.company_id)).eq("is_deleted", False).execute()
     next_num = (count_response.count or 0) + 1
     invoice_number = f"INV-{today}-{next_num:04d}"
@@ -115,8 +115,8 @@ async def process_pos_sale(
     invoice_dict = {
         "invoice_number": invoice_number,
         "customer_id": str(sale_data.customer_id) if sale_data.customer_id else None,
-        "date": datetime.utcnow().isoformat(),
-        "due_date": datetime.utcnow().isoformat(),
+        "date": datetime.now(timezone.utc).isoformat(),
+        "due_date": datetime.now(timezone.utc).isoformat(),
         "subtotal": float(subtotal),
         "tax_total": float(tax_total),
         "discount": float(sale_data.discount),
@@ -154,7 +154,7 @@ async def process_pos_sale(
             # Reduce stock
             supabase.table("inventory").update({
                 "quantity": supabase.table("inventory").select("quantity").eq("product_id", str(item["product"]["id"])).eq("company_id", str(current_user.company_id)).execute().data[0]["quantity"] - item["quantity"],
-                "updated_at": datetime.utcnow().isoformat()
+                "updated_at": datetime.now(timezone.utc).isoformat()
             }).eq("product_id", str(item["product"]["id"])).eq("company_id", str(current_user.company_id)).execute()
 
     # Create journal entry
@@ -166,7 +166,7 @@ async def process_pos_sale(
         if cash_account.data and sales_account.data:
             journal_data = {
                 "company_id": str(current_user.company_id),
-                "date": datetime.utcnow().isoformat(),
+                "date": datetime.now(timezone.utc).isoformat(),
                 "reference_type": "invoice",
                 "reference_id": str(invoice_id),
                 "description": f"POS Sale {invoice_number}",
@@ -219,7 +219,7 @@ async def process_pos_sale(
 
     receipt = ReceiptData(
         invoice_number=invoice_number,
-        date=datetime.utcnow(),
+        date=datetime.now(timezone.utc),
         customer_name=customer_name,
         items=receipt_items,
         subtotal=subtotal,

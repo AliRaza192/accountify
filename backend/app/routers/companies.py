@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 from supabase import create_client, Client
 
 from app.config import settings
@@ -97,7 +97,7 @@ async def update_company(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company not found")
     
     update_data = company_data.model_dump(exclude_unset=True)
-    update_data["updated_at"] = datetime.utcnow().isoformat()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
     response = supabase.table("companies").update(update_data).eq("id", str(company_id)).execute()
     
