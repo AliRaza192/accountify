@@ -81,6 +81,17 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    label: "Tax",
+    href: "/dashboard/tax",
+    icon: <FileText className="h-5 w-5" />,
+    children: [
+      { label: "Dashboard", href: "/dashboard/tax" },
+      { label: "Tax Rates", href: "/dashboard/tax/rates" },
+      { label: "Monthly Returns", href: "/dashboard/tax/returns" },
+      { label: "WHT Transactions", href: "/dashboard/tax/wht" },
+    ],
+  },
+  {
     label: "Accounting",
     href: "/accounting",
     icon: <BookOpen className="h-5 w-5" />,
