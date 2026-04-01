@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { fetchCostCenter, fetchDepartmentPL } from '@/lib/api/cost-centers';
 import { toast } from 'sonner';
 import { ArrowLeft, BarChart3, TrendingUp, TrendingDown } from 'lucide-react';

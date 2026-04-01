@@ -7,6 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -300,23 +308,4 @@ export default function LeadsPage() {
       </Card>
     </div>
   );
-}
-
-function Table({ children }: { children: React.ReactNode }) {
-  return <div className="w-full overflow-auto">{children}</div>;
-}
-function TableHeader({ children }: { children: React.ReactNode }) {
-  return <div className="border-b">{children}</div>;
-}
-function TableBody({ children }: { children: React.ReactNode }) {
-  return <div>{children}</div>;
-}
-function TableRow({ children }: { children: React.ReactNode }) {
-  return <div className="flex gap-4 py-3 border-b last:border-0">{children}</div>;
-}
-function TableHead({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`font-semibold text-sm ${className} flex-1`}>{children}</div>;
-}
-function TableCell({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`text-sm ${className} flex-1`}>{children}</div>;
 }

@@ -4,7 +4,7 @@
  */
 
 import axios from 'axios';
-import { getSupabaseClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -39,7 +39,6 @@ interface Ticket {
 }
 
 export async function getAuthToken(): Promise<string> {
-  const supabase = getSupabaseClient();
   const { data } = await supabase.auth.getSession();
   return data.session?.access_token || '';
 }

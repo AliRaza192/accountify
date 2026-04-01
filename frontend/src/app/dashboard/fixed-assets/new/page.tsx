@@ -29,7 +29,7 @@ import { ArrowLeft } from 'lucide-react';
 export default function NewFixedAssetPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [categories, useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
 
   const form = useForm({
     defaultValues: {
