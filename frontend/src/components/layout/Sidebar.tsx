@@ -92,6 +92,16 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    label: "Banking",
+    href: "/dashboard/banking",
+    icon: <BookOpen className="h-5 w-5" />,
+    children: [
+      { label: "Overview", href: "/dashboard/banking" },
+      { label: "Reconciliation", href: "/dashboard/banking/reconciliation" },
+      { label: "PDC Management", href: "/dashboard/banking/pdcs" },
+    ],
+  },
+  {
     label: "Accounting",
     href: "/accounting",
     icon: <BookOpen className="h-5 w-5" />,
