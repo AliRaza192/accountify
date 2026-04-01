@@ -103,27 +103,27 @@
 
 ### Implementation for User Story 2
 
-- [ ] T045 [P] [US2] Create CostCenter SQLAlchemy model in backend/app/models/cost_centers.py
-- [ ] T046 [P] [US2] Create CostCenterAllocation SQLAlchemy model in backend/app/models/cost_centers.py
-- [ ] T047 [P] [US2] Create CostCenter Pydantic schemas in backend/app/schemas/cost_centers.py
-- [ ] T048 [US2] Create CostCenterService in backend/app/services/cost_center_service.py with CRUD operations
-- [ ] T049 [US2] Implement allocate_overhead method in CostCenterService
-- [ ] T050 [US2] Implement get_department_pl method for department-wise P&L
-- [ ] T051 [US2] Create cost_centers router in backend/app/routers/cost_centers.py with GET /api/v1/cost-centers endpoint
-- [ ] T052 [US2] Add POST /api/v1/cost-centers endpoint
-- [ ] T053 [US2] Add GET /api/v1/cost-centers/{id} endpoint
-- [ ] T054 [US2] Add GET /api/v1/cost-centers/{id}/profit-loss endpoint for department P&L
-- [ ] T055 [US2] Add POST /api/v1/cost-centers/allocate endpoint for overhead allocation
-- [ ] T056 [US2] Add GET /api/v1/cost-centers/reports/summary endpoint
-- [ ] T057 [P] [US2] Create CostCenterForm component in frontend/src/components/cost-centers/cost-center-form.tsx
-- [ ] T058 [P] [US2] Create DepartmentPL component in frontend/src/components/cost-centers/department-pl.tsx
-- [ ] T059 [US2] Create cost center list page in frontend/src/app/dashboard/cost-centers/page.tsx
-- [ ] T060 [US2] Create cost center detail page in frontend/src/app/dashboard/cost-centers/[id]/page.tsx
-- [ ] T061 [US2] Add Cost Centers navigation link to Sidebar.tsx
-- [ ] T062 [US2] Add API client functions in frontend/src/lib/api/cost-centers.ts
-- [ ] T063 [US2] Update expense creation form to include cost center selection dropdown
-- [ ] T064 [US2] Update invoice creation to include cost center allocation
-- [ ] T065 [US2] Add error handling and loading states
+- [X] T045 [P] [US2] Create CostCenter SQLAlchemy model in backend/app/models/cost_centers.py
+- [X] T046 [P] [US2] Create CostCenterAllocation SQLAlchemy model in backend/app/models/cost_centers.py
+- [X] T047 [P] [US2] Create CostCenter Pydantic schemas in backend/app/schemas/cost_centers.py
+- [X] T048 [US2] Create CostCenterService in backend/app/services/cost_center_service.py with CRUD operations
+- [X] T049 [US2] Implement allocate_overhead method in CostCenterService
+- [X] T050 [US2] Implement get_department_pl method for department-wise P&L
+- [X] T051 [US2] Create cost_centers router in backend/app/routers/cost_centers.py with GET /api/v1/cost-centers endpoint
+- [X] T052 [US2] Add POST /api/v1/cost-centers endpoint
+- [X] T053 [US2] Add GET /api/v1/cost-centers/{id} endpoint
+- [X] T054 [US2] Add GET /api/v1/cost-centers/{id}/profit-loss endpoint for department P&L
+- [X] T055 [US2] Add POST /api/v1/cost-centers/allocate endpoint for overhead allocation
+- [X] T056 [US2] Add GET /api/v1/cost-centers/reports/summary endpoint
+- [X] T057 [P] [US2] Create CostCenterForm component in frontend/src/components/cost-centers/cost-center-form.tsx
+- [X] T058 [P] [US2] Create DepartmentPL component in frontend/src/components/cost-centers/department-pl.tsx
+- [X] T059 [US2] Create cost center list page in frontend/src/app/dashboard/accounting/cost-centers/page.tsx
+- [X] T060 [US2] Create cost center detail page in frontend/src/app/dashboard/accounting/cost-centers/[id]/page.tsx
+- [X] T061 [US2] Add Cost Centers navigation link to Sidebar.tsx
+- [X] T062 [US2] Add API client functions in frontend/src/lib/api/cost-centers.ts
+- [X] T063 [US2] Update expense creation form to include cost center selection dropdown
+- [X] T064 [US2] Update invoice creation to include cost center allocation
+- [X] T065 [US2] Add error handling and loading states
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 

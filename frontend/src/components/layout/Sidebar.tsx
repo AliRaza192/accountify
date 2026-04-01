@@ -72,6 +72,15 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    label: "Cost Centers",
+    href: "/dashboard/accounting/cost-centers",
+    icon: <Calculator className="h-5 w-5" />,
+    children: [
+      { label: "All Cost Centers", href: "/dashboard/accounting/cost-centers" },
+      { label: "Add New", href: "/dashboard/accounting/cost-centers/new" },
+    ],
+  },
+  {
     label: "Accounting",
     href: "/accounting",
     icon: <BookOpen className="h-5 w-5" />,
