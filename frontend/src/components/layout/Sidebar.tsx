@@ -102,6 +102,17 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    label: "CRM",
+    href: "/dashboard/crm",
+    icon: <Users className="h-5 w-5" />,
+    children: [
+      { label: "Dashboard", href: "/dashboard/crm" },
+      { label: "Leads", href: "/dashboard/crm/leads" },
+      { label: "Support Tickets", href: "/dashboard/crm/tickets" },
+      { label: "Loyalty Program", href: "/dashboard/crm/loyalty" },
+    ],
+  },
+  {
     label: "Accounting",
     href: "/accounting",
     icon: <BookOpen className="h-5 w-5" />,
