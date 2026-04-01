@@ -1,0 +1,69 @@
+# Docker ignore file for Accountify
+# https://docs.docker.com/engine/reference/builder/#dockerignore-file
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# Documentation
+*.md
+README.md
+CONSTITUTION.md
+DEPLOYMENT.md
+QWEN.md
+SPECIFICATION.md
+STATUS.md
+docs/
+specs/
+history/
+
+# Development
+.qwen/
+.specify/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Python
+backend/__pycache__/
+backend/*.pyc
+backend/*.pyo
+backend/.venv/
+backend/venv/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.next/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+.coverage.*

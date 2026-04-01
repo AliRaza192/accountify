@@ -1,0 +1,46 @@
+# ESLint ignore file for Accountify
+# https://eslint.org/docs/user-guide/configuring#ignoring-files-and-directories
+
+# Dependencies
+frontend/node_modules/
+backend/venv/
+backend/.venv/
+
+# Build outputs
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/out/
+
+# Generated files
+frontend/src/components/ui/
+frontend/public/
+
+# Configuration
+*.config.js
+*.config.ts
+*.conf.js
+
+# Legacy
+frontend/src/pages/
+frontend/src/api/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

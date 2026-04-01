@@ -181,3 +181,19 @@ frontend/.env.bak
 **/.env.save
 **/.env.bak
 **/*.env
+
+# Spec-Driven Development Files
+# (Keep spec files, they are important documentation)
+# specs/*.md - KEEP THESE
+# SPECIFICATION.md - KEEP THIS
+# CONSTITUTION.md - KEEP THIS
+# SPEC_DRIVEN_GUIDE.md - KEEP THIS
+# STATUS.md - KEEP THIS
+# .qwen/slash-commands/ - KEEP THESE
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+tmp/
+temp/

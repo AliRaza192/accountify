@@ -1,0 +1,515 @@
+openapi: 3.0.3
+info:
+  title: Accountify CRM API
+  description: API for lead management, sales pipeline, support tickets, loyalty program
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Lead:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        company_id:
+          type: string
+          format: uuid
+        lead_code:
+          type: string
+          example: LEAD-2025-001
+        name:
+          type: string
+        contact_phone:
+          type: string
+        contact_email:
+          type: string
+          format: email
+        source:
+          type: string
+          enum: [website, whatsapp, referral, walk_in, cold_call]
+        requirement:
+          type: string
+        estimated_value:
+          type: number
+          format: decimal
+        probability_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        stage:
+          type: string
+          enum: [new, contacted, proposal, negotiation, converted, lost]
+        assigned_to:
+          type: string
+          format: uuid
+          nullable: true
+        follow_up_date:
+          type: string
+          format: date
+          nullable: true
+        ai_score:
+          type: integer
+          nullable: true
+        converted_to_customer_id:
+          type: string
+          format: uuid
+          nullable: true
+    PipelineStage:
+      type: object
+      properties:
+        stage:
+          type: string
+        count:
+          type: integer
+        total_value:
+          type: number
+          format: decimal
+        weighted_value:
+          type: number
+          format: decimal
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        company_id:
+          type: string
+          format: uuid
+        ticket_number:
+          type: string
+          example: TKT-2025-001
+        customer_id:
+          type: string
+          format: uuid
+        issue_category:
+          type: string
+          enum: [billing, technical, general, complaint]
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        assigned_to:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          enum: [open, in_progress, waiting_customer, resolved, closed]
+        description:
+          type: string
+        resolution_notes:
+          type: string
+          nullable: true
+        satisfaction_rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+    LoyaltyProgram:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        company_id:
+          type: string
+          format: uuid
+        program_name:
+          type: string
+        points_per_rupee:
+          type: number
+          format: decimal
+        redemption_rate:
+          type: number
+          format: decimal
+        tier_benefits:
+          type: object
+        is_active:
+          type: boolean
+
+security:
+  - bearerAuth: []
+
+paths:
+  /crm/leads:
+    get:
+      summary: List leads
+      parameters:
+        - name: stage
+          in: query
+          schema:
+            type: string
+            enum: [new, contacted, proposal, negotiation, converted, lost]
+        - name: source
+          in: query
+          schema:
+            type: string
+        - name: assigned_to
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: List of leads
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Lead'
+                  total:
+                    type: integer
+    post:
+      summary: Create lead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Lead'
+      responses:
+        '201':
+          description: Lead created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lead'
+
+  /crm/leads/{id}:
+    get:
+      summary: Get lead details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lead details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lead'
+    put:
+      summary: Update lead
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Lead'
+      responses:
+        '200':
+          description: Lead updated successfully
+
+  /crm/leads/{id}/convert:
+    post:
+      summary: Convert lead to customer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lead converted to customer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customer_id:
+                    type: string
+                    format: uuid
+                  lead_code:
+                    type: string
+
+  /crm/pipeline:
+    get:
+      summary: Get sales pipeline Kanban data
+      responses:
+        '200':
+          description: Pipeline data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PipelineStage'
+
+  /crm/pipeline/stage:
+    put:
+      summary: Update lead stage (Kanban drag-drop)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lead_id:
+                  type: string
+                  format: uuid
+                new_stage:
+                  type: string
+                  enum: [new, contacted, proposal, negotiation, converted, lost]
+      responses:
+        '200':
+          description: Stage updated successfully
+
+  /crm/tickets:
+    get:
+      summary: List support tickets
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, in_progress, waiting_customer, resolved, closed]
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high, critical]
+        - name: customer_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of tickets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ticket'
+    post:
+      summary: Create support ticket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Ticket'
+      responses:
+        '201':
+          description: Ticket created
+
+  /crm/tickets/{id}:
+    put:
+      summary: Update ticket
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Ticket'
+      responses:
+        '200':
+          description: Ticket updated
+
+  /crm/loyalty/points:
+    get:
+      summary: Get customer loyalty points
+      parameters:
+        - name: customer_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Loyalty points balance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customer_id:
+                    type: string
+                    format: uuid
+                  points_balance:
+                    type: number
+                    format: decimal
+                  tier:
+                    type: string
+                  lifetime_points:
+                    type: number
+                    format: decimal
+
+  /crm/loyalty/redeem:
+    post:
+      summary: Redeem loyalty points
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customer_id:
+                  type: string
+                  format: uuid
+                points_to_redeem:
+                  type: number
+                  format: decimal
+                invoice_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+      responses:
+        '200':
+          description: Points redeemed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  new_balance:
+                    type: number
+                    format: decimal
+                  discount_amount:
+                    type: number
+                    format: decimal
+
+  /crm/reports/conversion:
+    get:
+      summary: Generate Lead Conversion Report
+      parameters:
+        - name: from_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Lead Conversion Report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_leads:
+                    type: integer
+                  converted_leads:
+                    type: integer
+                  conversion_rate:
+                    type: number
+                    format: decimal
+                  by_source:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        source:
+                          type: string
+                        count:
+                          type: integer
+                        converted:
+                          type: integer
+                        conversion_rate:
+                          type: number
+
+  /crm/reports/pipeline:
+    get:
+      summary: Generate Sales Pipeline Report
+      responses:
+        '200':
+          description: Pipeline Report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_pipeline_value:
+                    type: number
+                    format: decimal
+                  weighted_pipeline_value:
+                    type: number
+                    format: decimal
+                  by_stage:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PipelineStage'
+
+  /crm/reports/ticket-summary:
+    get:
+      summary: Generate Ticket Summary Report
+      parameters:
+        - name: period_month
+          in: query
+          schema:
+            type: integer
+        - name: period_year
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Ticket Summary Report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_tickets:
+                    type: integer
+                  resolved_tickets:
+                    type: integer
+                  average_resolution_time_hours:
+                    type: number
+                    format: decimal
+                  satisfaction_score:
+                    type: number
+                    format: decimal

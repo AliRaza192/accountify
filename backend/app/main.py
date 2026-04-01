@@ -121,6 +121,37 @@ try:
 except Exception as e:
     logger.warning(f"POS router failed to load: {e}")
 
+# Phase 1 Critical Modules
+try:
+    from app.routers import fixed_assets
+    app.include_router(fixed_assets.router, prefix="/api/fixed-assets", tags=["Fixed Assets"])
+except Exception as e:
+    logger.warning(f"Fixed Assets router failed to load: {e}")
+
+try:
+    from app.routers import cost_centers
+    app.include_router(cost_centers.router, prefix="/api/cost-centers", tags=["Cost Centers"])
+except Exception as e:
+    logger.warning(f"Cost Centers router failed to load: {e}")
+
+try:
+    from app.routers import tax_management
+    app.include_router(tax_management.router, prefix="/api/tax", tags=["Tax Management"])
+except Exception as e:
+    logger.warning(f"Tax Management router failed to load: {e}")
+
+try:
+    from app.routers import bank_reconciliation
+    app.include_router(bank_reconciliation.router, prefix="/api/bank-reconciliation", tags=["Bank Reconciliation"])
+except Exception as e:
+    logger.warning(f"Bank Reconciliation router failed to load: {e}")
+
+try:
+    from app.routers import crm
+    app.include_router(crm.router, prefix="/api/crm", tags=["CRM"])
+except Exception as e:
+    logger.warning(f"CRM router failed to load: {e}")
+
 
 @app.get("/")
 async def root():

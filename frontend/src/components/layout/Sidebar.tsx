@@ -17,6 +17,7 @@ import {
   FileText,
   ShoppingCart,
   BookOpen,
+  Building2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import useAuth from "@/hooks/useAuth"
@@ -59,6 +60,16 @@ const navItems: NavItem[] = [
     label: "Inventory",
     href: "/inventory",
     icon: <Package className="h-5 w-5" />,
+  },
+  {
+    label: "Fixed Assets",
+    href: "/dashboard/fixed-assets",
+    icon: <Building2 className="h-5 w-5" />,
+    children: [
+      { label: "All Assets", href: "/dashboard/fixed-assets" },
+      { label: "Add New", href: "/dashboard/fixed-assets/new" },
+      { label: "Depreciation", href: "/dashboard/fixed-assets/depreciation" },
+    ],
   },
   {
     label: "Accounting",

@@ -20,23 +20,29 @@ os.environ['SECRET_KEY'] = 'test-secret'
 def mock_settings():
     """Mock settings for all tests"""
     from app.config import settings
-    
+
     settings.SUPABASE_URL = "https://test.supabase.co"
     settings.SUPABASE_SERVICE_KEY = "test-key"
     settings.SUPABASE_JWT_SECRET = "test-jwt-secret"
     settings.DATABASE_URL = "postgresql://test:test@localhost/test"
     settings.GEMINI_API_KEY = "test-key"
     settings.SECRET_KEY = "test-secret"
-    
+
     yield settings
 
 
 @pytest.fixture(scope='function', autouse=True)
 def mock_supabase():
-    """Mock supabase client for all tests"""
+    """Mock supabase client for all tests - patches both database.supabase and auth.supabase"""
     from app import database
-    
+    from app.routers import auth
+
     mock_client = MagicMock()
+    
+    # Mock the supabase client in database module
     database._supabase_client = mock_client
     
-    yield mock_client
+    # Also patch the supabase import in auth router
+    with patch.object(database, 'supabase', mock_client):
+        with patch.object(auth, 'supabase', mock_client):
+            yield mock_client

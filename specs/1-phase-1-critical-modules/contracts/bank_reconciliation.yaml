@@ -1,0 +1,380 @@
+openapi: 3.0.3
+info:
+  title: Accountify Bank Reconciliation API
+  description: API for bank statement import, transaction matching, PDC management
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    BankStatementImport:
+      type: object
+      properties:
+        bank_account_id:
+          type: string
+          format: uuid
+        statement_date:
+          type: string
+          format: date
+        format_type:
+          type: string
+          enum: [type_a, type_b, custom]
+        file_content:
+          type: string
+          description: CSV file content as string
+        column_mapping:
+          type: object
+          nullable: true
+          properties:
+            date_column:
+              type: string
+            description_column:
+              type: string
+            debit_column:
+              type: string
+            credit_column:
+              type: string
+            balance_column:
+              type: string
+    MatchingSuggestion:
+      type: object
+      properties:
+        bank_transaction:
+          type: object
+          properties:
+            date:
+              type: string
+              format: date
+            description:
+              type: string
+            amount:
+              type: number
+            type:
+              type: string
+              enum: [debit, credit]
+        system_transactions:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              type:
+                type: string
+              date:
+                type: string
+                format: date
+              amount:
+                type: number
+              description:
+                type: string
+        match_confidence:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 100
+    ReconciliationComplete:
+      type: object
+      properties:
+        bank_account_id:
+          type: string
+          format: uuid
+        period_month:
+          type: integer
+        period_year:
+          type: integer
+        opening_balance:
+          type: number
+          format: decimal
+        closing_balance_per_bank:
+          type: number
+          format: decimal
+        closing_balance_per_books:
+          type: number
+          format: decimal
+        reconciled_transaction_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+    PDC:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        cheque_number:
+          type: string
+        bank_name:
+          type: string
+        cheque_date:
+          type: string
+          format: date
+        amount:
+          type: number
+          format: decimal
+        party_type:
+          type: string
+          enum: [customer, vendor]
+        party_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, deposited, cleared, bounced, returned]
+
+security:
+  - bearerAuth: []
+
+paths:
+  /bank-rec/import-statement:
+    post:
+      summary: Import CSV bank statement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BankStatementImport'
+      responses:
+        '200':
+          description: Bank statement imported successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statement_id:
+                    type: string
+                    format: uuid
+                  transactions_imported:
+                    type: integer
+                  opening_balance:
+                    type: number
+                  closing_balance:
+                    type: number
+        '400':
+          description: Invalid CSV format
+
+  /bank-rec/matching-suggestions:
+    get:
+      summary: Get auto-match suggestions
+      parameters:
+        - name: statement_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Matching suggestions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MatchingSuggestion'
+
+  /bank-rec/match:
+    post:
+      summary: Match bank transaction with system entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bank_transaction_id:
+                  type: string
+                  format: uuid
+                system_transaction_id:
+                  type: string
+                  format: uuid
+                reconciliation_session_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Transactions matched successfully
+        '400':
+          description: Match not possible
+
+  /bank-rec/complete-reconciliation:
+    post:
+      summary: Complete bank reconciliation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReconciliationComplete'
+      responses:
+        '200':
+          description: Reconciliation completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reconciliation_id:
+                    type: string
+                    format: uuid
+                  difference:
+                    type: number
+                    format: decimal
+                  status:
+                    type: string
+                    enum: [completed]
+        '400':
+          description: Reconciliation incomplete (difference != 0)
+
+  /bank-rec/reports/statement:
+    get:
+      summary: Generate Bank Reconciliation Statement
+      parameters:
+        - name: bank_account_id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: period_month
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: period_year
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Bank Reconciliation Statement
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bank_name:
+                    type: string
+                  account_number:
+                    type: string
+                  period:
+                    type: string
+                  opening_balance:
+                    type: number
+                  add_deposits_in_transit:
+                    type: number
+                  less_outstanding_cheques:
+                    type: number
+                  adjusted_balance:
+                    type: number
+                  balance_per_books:
+                    type: number
+                  difference:
+                    type: number
+
+  /bank-rec/pdcs/list:
+    get:
+      summary: List PDCs
+      parameters:
+        - name: party_type
+          in: query
+          schema:
+            type: string
+            enum: [customer, vendor]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, deposited, cleared, bounced, returned]
+        - name: from_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of PDCs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PDC'
+
+  /bank-rec/pdcs/deposit:
+    post:
+      summary: Deposit PDC in bank
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deposited_date:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: PDC deposited successfully
+        '400':
+          description: Cannot deposit (already cleared/bounced)
+
+  /bank-rec/reports/pdc-maturity:
+    get:
+      summary: Generate PDC Maturity Report
+      parameters:
+        - name: party_type
+          in: query
+          schema:
+            type: string
+          enum: [customer, vendor]
+      responses:
+        '200':
+          description: PDC Maturity Report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  due_within_7_days:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PDC'
+                  due_within_15_days:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PDC'
+                  due_within_30_days:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PDC'
+                  overdue:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PDC'

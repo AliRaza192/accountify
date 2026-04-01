@@ -1,0 +1,396 @@
+openapi: 3.0.3
+info:
+  title: Accountify Fixed Assets API
+  description: API for managing fixed assets, depreciation, and maintenance
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+  - url: https://accountify.fly.dev/api/v1
+    description: Production server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    FixedAsset:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        company_id:
+          type: string
+          format: uuid
+        asset_code:
+          type: string
+          example: FA-2025-001
+        name:
+          type: string
+          example: Toyota Corolla 2024
+        category_id:
+          type: string
+          format: uuid
+        purchase_date:
+          type: string
+          format: date
+        purchase_cost:
+          type: number
+          format: decimal
+          example: 2000000.00
+        useful_life_months:
+          type: integer
+          example: 60
+        residual_value_percent:
+          type: number
+          format: decimal
+          example: 10.0
+        depreciation_method:
+          type: string
+          enum: [SLM, WDV]
+        location:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, disposed, sold, fully_depreciated]
+        book_value:
+          type: number
+          format: decimal
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+    AssetCategory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        depreciation_rate_percent:
+          type: number
+          format: decimal
+        depreciation_method:
+          type: string
+          enum: [SLM, WDV]
+        account_code:
+          type: string
+    DepreciationRun:
+      type: object
+      properties:
+        period_month:
+          type: integer
+          minimum: 1
+          maximum: 12
+        period_year:
+          type: integer
+          minimum: 2020
+        asset_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: If null, run for all assets
+    MaintenanceLog:
+      type: object
+      properties:
+        asset_id:
+          type: string
+          format: uuid
+        service_date:
+          type: string
+          format: date
+        service_type:
+          type: string
+        service_provider:
+          type: string
+          nullable: true
+        cost:
+          type: number
+          format: decimal
+        next_service_due:
+          type: string
+          format: date
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+security:
+  - bearerAuth: []
+
+paths:
+  /fixed-assets:
+    get:
+      summary: List all fixed assets
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, disposed, sold, fully_depreciated]
+        - name: category_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FixedAsset'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+    post:
+      summary: Create a new fixed asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FixedAsset'
+      responses:
+        '201':
+          description: Asset created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FixedAsset'
+        '400':
+          description: Invalid input
+
+  /fixed-assets/{id}:
+    get:
+      summary: Get fixed asset details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FixedAsset'
+        '404':
+          description: Asset not found
+    put:
+      summary: Update fixed asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FixedAsset'
+      responses:
+        '200':
+          description: Asset updated successfully
+        '404':
+          description: Asset not found
+    delete:
+      summary: Dispose/sell fixed asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                disposal_date:
+                  type: string
+                  format: date
+                sale_proceeds:
+                  type: number
+                  format: decimal
+                disposal_reason:
+                  type: string
+      responses:
+        '200':
+          description: Asset disposed successfully
+        '400':
+          description: Invalid disposal data
+
+  /fixed-assets/{id}/maintenance:
+    post:
+      summary: Log maintenance for an asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaintenanceLog'
+      responses:
+        '201':
+          description: Maintenance logged successfully
+        '404':
+          description: Asset not found
+
+  /fixed-assets/run-depreciation:
+    post:
+      summary: Run monthly depreciation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepreciationRun'
+      responses:
+        '200':
+          description: Depreciation run completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assets_depreciated:
+                    type: integer
+                  total_depreciation:
+                    type: number
+                    format: decimal
+                  journal_entries_created:
+                    type: integer
+        '400':
+          description: Depreciation already run for period
+
+  /fixed-assets/reports/register:
+    get:
+      summary: Generate Fixed Asset Register
+      parameters:
+        - name: as_of_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Fixed Asset Register report
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    asset_code:
+                      type: string
+                    name:
+                      type: string
+                    category:
+                      type: string
+                    purchase_date:
+                      type: string
+                      format: date
+                    purchase_cost:
+                      type: number
+                    accumulated_depreciation:
+                      type: number
+                    book_value:
+                      type: number
+
+  /fixed-assets/reports/depreciation-schedule:
+    get:
+      summary: Generate Depreciation Schedule
+      parameters:
+        - name: asset_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+            nullable: true
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Depreciation Schedule report
+
+  /fixed-assets/reports/disposal:
+    get:
+      summary: Generate Asset Disposal Report
+      parameters:
+        - name: from_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Asset Disposal Report
+
+  /asset-categories:
+    get:
+      summary: List asset categories
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AssetCategory'
+    post:
+      summary: Create asset category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetCategory'
+      responses:
+        '201':
+          description: Category created

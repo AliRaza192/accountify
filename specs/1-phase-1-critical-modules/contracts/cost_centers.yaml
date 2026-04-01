@@ -1,0 +1,285 @@
+openapi: 3.0.3
+info:
+  title: Accountify Cost Centers API
+  description: API for cost center management and department-wise P&L
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CostCenter:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        company_id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          example: CC-001
+        name:
+          type: string
+          example: Sales Department
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, inactive]
+          default: active
+        overhead_allocation_rule:
+          type: object
+          nullable: true
+          properties:
+            type:
+              type: string
+              enum: [percentage, equal_split, by_headcount, by_area]
+            value:
+              type: number
+              format: decimal
+            source_account:
+              type: string
+    CostCenterAllocation:
+      type: object
+      properties:
+        cost_center_id:
+          type: string
+          format: uuid
+        transaction_type:
+          type: string
+          enum: [journal_entry, invoice, bill, expense]
+        transaction_id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: decimal
+        allocation_percent:
+          type: number
+          format: decimal
+          default: 100
+    DepartmentPL:
+      type: object
+      properties:
+        cost_center_code:
+          type: string
+        cost_center_name:
+          type: string
+        revenue:
+          type: number
+          format: decimal
+        direct_expenses:
+          type: number
+          format: decimal
+        allocated_overhead:
+          type: number
+          format: decimal
+        net_profit:
+          type: number
+          format: decimal
+
+security:
+  - bearerAuth: []
+
+paths:
+  /cost-centers:
+    get:
+      summary: List cost centers
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive]
+      responses:
+        '200':
+          description: List of cost centers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CostCenter'
+    post:
+      summary: Create cost center
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CostCenter'
+      responses:
+        '201':
+          description: Cost center created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostCenter'
+
+  /cost-centers/{id}:
+    get:
+      summary: Get cost center details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Cost center details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CostCenter'
+    put:
+      summary: Update cost center
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CostCenter'
+      responses:
+        '200':
+          description: Cost center updated
+
+  /cost-centers/{id}/profit-loss:
+    get:
+      summary: Generate Department P&L
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: period_month
+          in: query
+          schema:
+            type: integer
+        - name: period_year
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Department P&L Statement
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentPL'
+
+  /cost-centers/allocate:
+    post:
+      summary: Allocate overhead to cost centers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                source_account_code:
+                  type: string
+                amount:
+                  type: number
+                  format: decimal
+                allocation_type:
+                  type: string
+                  enum: [percentage, equal_split, by_headcount, by_area]
+                cost_center_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                percentages:
+                  type: array
+                  items:
+                    type: number
+      responses:
+        '200':
+          description: Overhead allocated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  allocations_created:
+                    type: integer
+                  total_allocated:
+                    type: number
+                    format: decimal
+
+  /cost-centers/reports/summary:
+    get:
+      summary: Generate Cost Center Summary
+      parameters:
+        - name: period_month
+          in: query
+          schema:
+            type: integer
+        - name: period_year
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Cost Center Summary Report
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DepartmentPL'
+
+  /cost-centers/reports/comparison:
+    get:
+      summary: Generate Branch/Department Comparison
+      responses:
+        '200':
+          description: Comparison Report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  by_revenue:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        cost_center:
+                          type: string
+                        revenue:
+                          type: number
+                        percentage_of_total:
+                          type: number
+                  by_profit:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        cost_center:
+                          type: string
+                        net_profit:
+                          type: number
+                        profit_margin_percent:
+                          type: number

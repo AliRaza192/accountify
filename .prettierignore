@@ -1,0 +1,41 @@
+# Prettier ignore file for Accountify
+# https://prettier.io/docs/en/ignore.html
+
+# Dependencies
+frontend/node_modules/
+backend/venv/
+backend/.venv/
+
+# Build outputs
+frontend/dist/
+frontend/build/
+frontend/.next/
+frontend/out/
+
+# Generated UI components
+frontend/src/components/ui/
+
+# Public assets
+frontend/public/
+
+# Configuration files
+*.config.js
+*.config.ts
+*.yml
+*.yaml
+
+# Documentation
+*.md
+docs/
+specs/
+history/
+
+# Coverage
+coverage/
+
+# Logs
+*.log
+
+# Generated files
+*.min.js
+*.bundle.js

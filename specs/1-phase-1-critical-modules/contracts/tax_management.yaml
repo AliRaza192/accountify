@@ -1,0 +1,415 @@
+openapi: 3.0.3
+info:
+  title: Accountify Tax Management API
+  description: API for FBR/SRB tax compliance - GST, WHT, Input/Output Tax, Tax Returns
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+  - url: https://accountify.fly.dev/api/v1
+    description: Production server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    TaxRate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        company_id:
+          type: string
+          format: uuid
+        tax_name:
+          type: string
+          example: GST 17%
+        rate_percent:
+          type: number
+          format: decimal
+          example: 17.0
+        tax_type:
+          type: string
+          enum: [sales_tax, input_tax, wht, federal_excise]
+        effective_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        is_active:
+          type: boolean
+          default: true
+    TaxReturn:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        company_id:
+          type: string
+          format: uuid
+        return_period_month:
+          type: integer
+          minimum: 1
+          maximum: 12
+        return_period_year:
+          type: integer
+        output_tax_total:
+          type: number
+          format: decimal
+        input_tax_total:
+          type: number
+          format: decimal
+        net_tax_payable:
+          type: number
+          format: decimal
+        filed_date:
+          type: string
+          format: date
+          nullable: true
+        challan_number:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [draft, filed, paid]
+    WHTTransaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        company_id:
+          type: string
+          format: uuid
+        transaction_date:
+          type: string
+          format: date
+        party_id:
+          type: string
+          format: uuid
+        party_type:
+          type: string
+          enum: [customer, vendor]
+        amount:
+          type: number
+          format: decimal
+        wht_category:
+          type: string
+          example: Section 153
+        wht_rate:
+          type: number
+          format: decimal
+        wht_amount:
+          type: number
+          format: decimal
+        is_filer:
+          type: boolean
+        challan_id:
+          type: string
+          format: uuid
+          nullable: true
+    NTNVerification:
+      type: object
+      properties:
+        ntn:
+          type: string
+          pattern: '^\d{7}-\d{1}$'
+        strn:
+          type: string
+          pattern: '^\d{13}$'
+          nullable: true
+        verified_by_user:
+          type: boolean
+        verification_date:
+          type: string
+          format: date-time
+
+security:
+  - bearerAuth: []
+
+paths:
+  /tax/rates:
+    get:
+      summary: List all tax rates
+      parameters:
+        - name: tax_type
+          in: query
+          schema:
+            type: string
+            enum: [sales_tax, input_tax, wht, federal_excise]
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaxRate'
+    post:
+      summary: Create tax rate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaxRate'
+      responses:
+        '201':
+          description: Tax rate created
+
+  /tax/sales-tax/return:
+    get:
+      summary: Generate Sales Tax Return (SRB/FBR format)
+      parameters:
+        - name: period_month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - name: period_year
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Sales Tax Return report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  return_period:
+                    type: string
+                  output_tax_total:
+                    type: number
+                    format: decimal
+                  input_tax_total:
+                    type: number
+                    format: decimal
+                  net_tax_payable:
+                    type: number
+                    format: decimal
+                  taxable_sales:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        invoice_number:
+                          type: string
+                        customer_name:
+                          type: string
+                        customer_ntn:
+                          type: string
+                        taxable_amount:
+                          type: number
+                        tax_amount:
+                          type: number
+                  taxable_purchases:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        bill_number:
+                          type: string
+                        vendor_name:
+                          type: string
+                        vendor_ntn:
+                          type: string
+                        taxable_amount:
+                          type: number
+                        tax_amount:
+                          type: number
+    post:
+      summary: Create/file tax return
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaxReturn'
+      responses:
+        '201':
+          description: Tax return created/filed
+
+  /tax/wht/transactions:
+    get:
+      summary: List WHT transactions
+      parameters:
+        - name: from_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: wht_category
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WHTTransaction'
+    post:
+      summary: Record WHT deduction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WHTTransaction'
+      responses:
+        '201':
+          description: WHT transaction recorded
+
+  /tax/wht/challan:
+    post:
+      summary: Generate WHT Challan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                period_month:
+                  type: integer
+                period_year:
+                  type: integer
+                wht_categories:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: WHT Challan generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  challan_number:
+                    type: string
+                  total_wht:
+                    type: number
+                    format: decimal
+                  transactions:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+
+  /tax/reports/input-output:
+    get:
+      summary: Generate Input/Output Tax Report
+      parameters:
+        - name: period_month
+          in: query
+          schema:
+            type: integer
+        - name: period_year
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Input/Output Tax Report
+
+  /tax/reports/reconciliation:
+    get:
+      summary: Generate Tax Reconciliation Report
+      parameters:
+        - name: period_month
+          in: query
+          schema:
+            type: integer
+        - name: period_year
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tax Reconciliation Report
+
+  /tax/verify-ntn:
+    post:
+      summary: Verify NTN/STRN (manual verification)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NTNVerification'
+      responses:
+        '200':
+          description: NTN/STRN verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verified:
+                    type: boolean
+                  verification_timestamp:
+                    type: string
+                    format: date-time
+
+  /tax/reports/sales-summary:
+    get:
+      summary: Generate Sales Summary for Tax
+      parameters:
+        - name: from_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Sales Summary Report
+
+  /tax/reports/purchase-summary:
+    get:
+      summary: Generate Purchase Summary for Tax
+      parameters:
+        - name: from_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Purchase Summary Report
