@@ -4,9 +4,15 @@
  */
 
 import axios from 'axios';
-import { supabase } from '@/lib/supabase';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+const getAuthToken = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('access_token');
+  }
+  return null;
+};
 
 interface CostCenter {
   id: string;
@@ -28,13 +34,9 @@ interface CostCenterAllocation {
   created_at: string;
 }
 
-export async function getAuthToken(): Promise<string> {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token || '';
-}
-
 export async function fetchCostCenters(status?: string): Promise<CostCenter[]> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const params = status ? `?status=${status}` : '';
   const response = await axios.get(`${API_BASE}/cost-centers${params}`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -43,7 +45,8 @@ export async function fetchCostCenters(status?: string): Promise<CostCenter[]> {
 }
 
 export async function fetchCostCenter(id: string): Promise<CostCenter> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.get(`${API_BASE}/cost-centers/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -51,7 +54,8 @@ export async function fetchCostCenter(id: string): Promise<CostCenter> {
 }
 
 export async function createCostCenter(data: Partial<CostCenter>): Promise<CostCenter> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(`${API_BASE}/cost-centers`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -62,7 +66,8 @@ export async function updateCostCenter(
   id: string,
   data: Partial<CostCenter>
 ): Promise<CostCenter> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.put(`${API_BASE}/cost-centers/${id}`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -70,7 +75,8 @@ export async function updateCostCenter(
 }
 
 export async function deleteCostCenter(id: string): Promise<void> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   await axios.delete(`${API_BASE}/cost-centers/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -85,7 +91,8 @@ export async function allocateTransaction(
     allocation_percent?: number;
   }
 ): Promise<CostCenterAllocation> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(
     `${API_BASE}/cost-centers/${costCenterId}/allocate`,
     data,
@@ -109,7 +116,8 @@ export async function allocateOverhead(
   total_allocated: number;
   cost_centers: Array<{ id: string; name: string }>;
 }> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(`${API_BASE}/cost-centers/allocate-overhead`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -132,11 +140,12 @@ export async function fetchDepartmentPL(
   net_profit: number;
   line_items: any[];
 }> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const params = new URLSearchParams();
   if (periodMonth) params.append('period_month', periodMonth.toString());
   if (periodYear) params.append('period_year', periodYear.toString());
-  
+
   const response = await axios.get(
     `${API_BASE}/cost-centers/${costCenterId}/pl-report?${params.toString()}`,
     {
@@ -157,11 +166,12 @@ export async function fetchCostCenterSummary(
   allocation_count: number;
   total_amount: number;
 }>> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const params = new URLSearchParams();
   if (periodMonth) params.append('period_month', periodMonth.toString());
   if (periodYear) params.append('period_year', periodYear.toString());
-  
+
   const response = await axios.get(
     `${API_BASE}/cost-centers/reports/summary?${params.toString()}`,
     {

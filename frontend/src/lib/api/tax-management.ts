@@ -4,9 +4,15 @@
  */
 
 import axios from 'axios';
-import { supabase } from '@/lib/supabase';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+const getAuthToken = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('access_token');
+  }
+  return null;
+};
 
 interface TaxRate {
   id: string;
@@ -43,18 +49,14 @@ interface WHTTransaction {
   is_filer: boolean;
 }
 
-export async function getAuthToken(): Promise<string> {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token || '';
-}
-
 // ============ Tax Rates ============
 
 export async function fetchTaxRates(taxType?: string): Promise<TaxRate[]> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const params = new URLSearchParams();
   if (taxType) params.append('tax_type', taxType);
-  
+
   const response = await axios.get(`${API_BASE}/tax/rates?${params.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -62,7 +64,8 @@ export async function fetchTaxRates(taxType?: string): Promise<TaxRate[]> {
 }
 
 export async function createTaxRate(data: Partial<TaxRate>): Promise<TaxRate> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(`${API_BASE}/tax/rates`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -70,7 +73,8 @@ export async function createTaxRate(data: Partial<TaxRate>): Promise<TaxRate> {
 }
 
 export async function updateTaxRate(id: string, data: Partial<TaxRate>): Promise<TaxRate> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.put(`${API_BASE}/tax/rates/${id}`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -80,7 +84,8 @@ export async function updateTaxRate(id: string, data: Partial<TaxRate>): Promise
 // ============ Tax Returns ============
 
 export async function fetchTaxReturns(status?: string): Promise<TaxReturn[]> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const params = status ? `?status=${status}` : '';
   const response = await axios.get(`${API_BASE}/tax/returns${params}`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -92,7 +97,8 @@ export async function generateTaxReturn(
   periodMonth: number,
   periodYear: number
 ): Promise<TaxReturn> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(
     `${API_BASE}/tax/returns/generate`,
     { return_period_month: periodMonth, return_period_year: periodYear },
@@ -104,7 +110,8 @@ export async function generateTaxReturn(
 }
 
 export async function fetchTaxReturn(id: string): Promise<TaxReturn> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.get(`${API_BASE}/tax/returns/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -118,7 +125,8 @@ export async function fileTaxReturn(
     challan_date?: string;
   }
 ): Promise<TaxReturn> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.put(`${API_BASE}/tax/returns/${id}/file`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -132,12 +140,13 @@ export async function fetchWHTTransactions(
   toDate?: string,
   category?: string
 ): Promise<WHTTransaction[]> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const params = new URLSearchParams();
   if (fromDate) params.append('from_date', fromDate);
   if (toDate) params.append('to_date', toDate);
   if (category) params.append('wht_category', category);
-  
+
   const response = await axios.get(`${API_BASE}/tax/wht?${params.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -145,7 +154,8 @@ export async function fetchWHTTransactions(
 }
 
 export async function createWHTTransaction(data: Partial<WHTTransaction>): Promise<WHTTransaction> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(`${API_BASE}/tax/wht`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -161,11 +171,12 @@ export async function fetchWHTSummary(
   total_wht: number;
   transaction_count: number;
 }>> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const params = new URLSearchParams();
   if (periodMonth) params.append('period_month', periodMonth.toString());
   if (periodYear) params.append('period_year', periodYear.toString());
-  
+
   const response = await axios.get(`${API_BASE}/tax/wht/summary?${params.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -186,11 +197,12 @@ export async function fetchTaxSummary(
   returns_filed: number;
   returns_pending: number;
 }> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const params = new URLSearchParams();
   if (periodMonth) params.append('period_month', periodMonth.toString());
   if (periodYear) params.append('period_year', periodYear.toString());
-  
+
   const response = await axios.get(`${API_BASE}/tax/summary?${params.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -208,11 +220,12 @@ export async function fetchOutputTaxReport(
   tax_amount: number;
   date: string;
 }>> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const params = new URLSearchParams();
   if (fromDate) params.append('from_date', fromDate);
   if (toDate) params.append('to_date', toDate);
-  
+
   const response = await axios.get(`${API_BASE}/tax/output-tax?${params.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -230,11 +243,12 @@ export async function fetchInputTaxReport(
   tax_amount: number;
   date: string;
 }>> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const params = new URLSearchParams();
   if (fromDate) params.append('from_date', fromDate);
   if (toDate) params.append('to_date', toDate);
-  
+
   const response = await axios.get(`${API_BASE}/tax/input-tax?${params.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
   });

@@ -43,7 +43,7 @@ function RegisterFormContent() {
     setIsLoading(true)
     try {
       // Step 1: Register user (creates company automatically)
-      const registerResponse = await api.post("/api/auth/register", {
+      const registerResponse = await api.post("/auth/register", {
         full_name: data.name,
         email: data.email,
         password: data.password,

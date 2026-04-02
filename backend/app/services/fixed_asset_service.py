@@ -12,13 +12,14 @@ from uuid import UUID
 from sqlalchemy import select, func, and_
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
+from supabase import Client
 
 from app.models.fixed_assets import FixedAsset, AssetCategory, AssetDepreciation, AssetMaintenance
-from app.models.journal_entries import JournalEntry, JournalLine
 from app.schemas.fixed_assets import (
     FixedAssetCreate, FixedAssetUpdate, AssetDepreciationRun,
     AssetDisposalRequest, AssetMaintenanceCreate
 )
+from app.database import get_supabase_client
 
 logger = logging.getLogger(__name__)
 
@@ -193,16 +194,19 @@ class FixedAssetService:
         Creates journal entries: Dr Depreciation Expense, Cr Accumulated Depreciation
         """
         logger.info(f"Running depreciation for {run_data.period_month}/{run_data.period_year}")
-        
+
         # Get all active assets
         assets = self.get_assets(company_id, status="active")
         if run_data.asset_id:
             assets = [a for a in assets if a.id == run_data.asset_id]
-        
+
         assets_depreciated = 0
         total_depreciation = Decimal('0')
         journal_entries_created = 0
         
+        # Get Supabase client for journal entry creation
+        supabase: Client = get_supabase_client()
+
         for asset in assets:
             try:
                 # Check if already depreciated for this period
@@ -215,76 +219,81 @@ class FixedAssetService:
                         )
                     )
                 ).scalar_one_or_none()
-                
+
                 if existing:
                     logger.info(f"Asset {asset.asset_code} already depreciated for this period")
                     continue
-                
+
                 # Get current book value
                 book_value, accumulated_dep = self.get_asset_book_value(asset.id)
                 if book_value is None:
                     book_value = asset.purchase_cost
-                
+
                 # Check if fully depreciated
                 if book_value <= asset.residual_value:
                     logger.info(f"Asset {asset.asset_code} fully depreciated")
                     continue
-                
+
                 # Calculate depreciation
                 months_held = 1  # Monthly depreciation
                 if asset.depreciation_method == "SLM":
                     depreciation_amount = self.calculate_depreciation_slm(asset, months_held)
                 else:  # WDV
                     depreciation_amount = self.calculate_depreciation_wdv(asset, book_value, months_held)
-                
+
                 if depreciation_amount <= 0:
                     continue
-                
+
                 # Calculate new book value
                 new_book_value = book_value - depreciation_amount
                 new_accumulated_dep = accumulated_dep + depreciation_amount
-                
+
                 # Ensure book value doesn't go below residual value
                 if new_book_value < asset.residual_value:
                     depreciation_amount = book_value - asset.residual_value
                     new_book_value = asset.residual_value
                     new_accumulated_dep = accumulated_dep + depreciation_amount
-                
-                # Create journal entry
-                journal_entry = JournalEntry(
-                    company_id=company_id,
-                    date=date.today(),
-                    description=f"Depreciation for {asset.name} - {asset.asset_code} ({run_data.period_month}/{run_data.period_year})",
-                    is_system_generated=True
-                )
-                self.db.add(journal_entry)
-                self.db.flush()
-                
-                # Get depreciation expense account from category
-                expense_account_code = f"6001"  # Depreciation Expense (default)
-                accumulated_account_code = f"0199"  # Accumulated Depreciation (default)
-                
-                # Journal lines: Dr Depreciation Expense, Cr Accumulated Depreciation
-                journal_lines = [
-                    JournalLine(
-                        journal_entry_id=journal_entry.id,
-                        account_code=expense_account_code,
-                        debit=depreciation_amount,
-                        credit=Decimal('0'),
-                        description=f"Depreciation expense - {asset.asset_code}"
-                    ),
-                    JournalLine(
-                        journal_entry_id=journal_entry.id,
-                        account_code=accumulated_account_code,
-                        debit=Decimal('0'),
-                        credit=depreciation_amount,
-                        description=f"Accumulated depreciation - {asset.asset_code}"
-                    )
-                ]
-                
-                for line in journal_lines:
-                    self.db.add(line)
-                
+
+                # Create journal entry using Supabase
+                journal_entry_id = None
+                if supabase:
+                    entry_dict = {
+                        "reference": f"DEPR-{asset.asset_code}-{run_data.period_month:02d}{run_data.period_year}",
+                        "date": date.today().isoformat(),
+                        "description": f"Depreciation for {asset.name} - {asset.asset_code} ({run_data.period_month}/{run_data.period_year})",
+                        "is_posted": True,
+                        "company_id": str(company_id),
+                        "created_by": str(posted_by),
+                    }
+                    entry_response = supabase.table("journal_entries").insert(entry_dict).execute()
+                    if entry_response.data:
+                        journal_entry_id = entry_response.data[0]["id"]
+                        
+                        # Get depreciation expense account from category
+                        expense_account_code = "6001"  # Depreciation Expense (default)
+                        accumulated_account_code = "0199"  # Accumulated Depreciation (default)
+                        
+                        # Journal lines: Dr Depreciation Expense, Cr Accumulated Depreciation
+                        journal_lines = [
+                            {
+                                "journal_entry_id": str(journal_entry_id),
+                                "account_code": expense_account_code,
+                                "debit": float(depreciation_amount),
+                                "credit": 0,
+                                "description": f"Depreciation expense - {asset.asset_code}"
+                            },
+                            {
+                                "journal_entry_id": str(journal_entry_id),
+                                "account_code": accumulated_account_code,
+                                "debit": 0,
+                                "credit": float(depreciation_amount),
+                                "description": f"Accumulated depreciation - {asset.asset_code}"
+                            }
+                        ]
+                        
+                        for line in journal_lines:
+                            supabase.table("journal_lines").insert(line).execute()
+
                 # Create depreciation record
                 dep_record = AssetDepreciation(
                     asset_id=asset.id,
@@ -293,39 +302,40 @@ class FixedAssetService:
                     depreciation_amount=depreciation_amount,
                     accumulated_depreciation=new_accumulated_dep,
                     book_value=new_book_value,
-                    journal_entry_id=journal_entry.id,
+                    journal_entry_id=journal_entry_id,
                     posted_by=posted_by
                 )
                 self.db.add(dep_record)
-                
+
                 # Check if fully depreciated
                 if new_book_value <= asset.residual_value:
                     asset.status = "fully_depreciated"
-                
+
                 assets_depreciated += 1
                 total_depreciation += depreciation_amount
-                journal_entries_created += 1
-                
+                if journal_entry_id:
+                    journal_entries_created += 1
+
                 logger.info(f"Depreciated asset {asset.asset_code}: {depreciation_amount}")
-                
+
             except Exception as e:
                 logger.error(f"Error depreciating asset {asset.asset_code}: {e}")
                 continue
-        
+
         self.db.commit()
-        
+
         result = {
             "assets_depreciated": assets_depreciated,
             "total_depreciation": float(total_depreciation),
             "journal_entries_created": journal_entries_created,
             "period": f"{run_data.period_month}/{run_data.period_year}"
         }
-        
+
         logger.info(f"Depreciation run complete: {result}")
         return result
     
     # ============ Asset Disposal ============
-    
+
     def dispose_asset(
         self,
         company_id: UUID,
@@ -340,101 +350,107 @@ class FixedAssetService:
         asset = self.get_asset(company_id, asset_id)
         if not asset:
             raise ValueError("Asset not found")
-        
+
         # Get book value at disposal
         book_value, accumulated_dep = self.get_asset_book_value(asset_id)
         if book_value is None:
             book_value = asset.purchase_cost
-        
+
         # Calculate gain/loss
         gain_or_loss = disposal_data.sale_proceeds - book_value
+
+        # Create journal entry using Supabase
+        supabase: Client = get_supabase_client()
+        journal_entry_id = None
         
-        # Create journal entry
-        journal_entry = JournalEntry(
-            company_id=company_id,
-            date=disposal_data.disposal_date,
-            description=f"Asset disposal: {asset.name} ({asset.asset_code}) - {disposal_data.disposal_reason}",
-            is_system_generated=True
-        )
-        self.db.add(journal_entry)
-        self.db.flush()
-        
-        # Journal lines:
-        # Dr Cash/Bank (sale proceeds)
-        # Dr Accumulated Depreciation (remove accumulated)
-        # Dr/Cr Gain or Loss on Disposal
-        # Cr Fixed Asset (remove cost)
-        
-        journal_lines = [
-            # Dr Cash/Bank
-            JournalLine(
-                journal_entry_id=journal_entry.id,
-                account_code="1001",  # Cash/Bank
-                debit=disposal_data.sale_proceeds,
-                credit=Decimal('0'),
-                description="Sale proceeds from asset disposal"
-            ),
-            # Dr Accumulated Depreciation
-            JournalLine(
-                journal_entry_id=journal_entry.id,
-                account_code="0199",  # Accumulated Depreciation
-                debit=accumulated_dep,
-                credit=Decimal('0'),
-                description="Remove accumulated depreciation"
-            ),
-            # Cr Fixed Asset (cost)
-            JournalLine(
-                journal_entry_id=journal_entry.id,
-                account_code="0101",  # Fixed Assets
-                debit=Decimal('0'),
-                credit=asset.purchase_cost,
-                description="Remove asset cost"
-            ),
-        ]
-        
-        # Dr Loss or Cr Gain
-        if gain_or_loss < 0:
-            # Loss on disposal
-            journal_lines.append(
-                JournalLine(
-                    journal_entry_id=journal_entry.id,
-                    account_code="6099",  # Loss on Disposal
-                    debit=abs(gain_or_loss),
-                    credit=Decimal('0'),
-                    description="Loss on asset disposal"
-                )
-            )
-        elif gain_or_loss > 0:
-            # Gain on disposal
-            journal_lines.append(
-                JournalLine(
-                    journal_entry_id=journal_entry.id,
-                    account_code="7099",  # Gain on Disposal
-                    debit=Decimal('0'),
-                    credit=gain_or_loss,
-                    description="Gain on asset disposal"
-                )
-            )
-        
-        for line in journal_lines:
-            self.db.add(line)
-        
+        if supabase:
+            entry_dict = {
+                "reference": f"DISP-{asset.asset_code}-{disposal_data.disposal_date.isoformat()}",
+                "date": disposal_data.disposal_date.isoformat(),
+                "description": f"Asset disposal: {asset.name} ({asset.asset_code}) - {disposal_data.disposal_reason}",
+                "is_posted": True,
+                "company_id": str(company_id),
+                "created_by": str(posted_by),
+            }
+            entry_response = supabase.table("journal_entries").insert(entry_dict).execute()
+            if entry_response.data:
+                journal_entry_id = entry_response.data[0]["id"]
+                
+                # Journal lines:
+                # Dr Cash/Bank (sale proceeds)
+                # Dr Accumulated Depreciation (remove accumulated)
+                # Dr/Cr Gain or Loss on Disposal
+                # Cr Fixed Asset (remove cost)
+
+                journal_lines = [
+                    # Dr Cash/Bank
+                    {
+                        "journal_entry_id": str(journal_entry_id),
+                        "account_code": "1001",  # Cash/Bank
+                        "debit": float(disposal_data.sale_proceeds),
+                        "credit": 0,
+                        "description": "Sale proceeds from asset disposal"
+                    },
+                    # Dr Accumulated Depreciation
+                    {
+                        "journal_entry_id": str(journal_entry_id),
+                        "account_code": "0199",  # Accumulated Depreciation
+                        "debit": float(accumulated_dep),
+                        "credit": 0,
+                        "description": "Remove accumulated depreciation"
+                    },
+                    # Cr Fixed Asset (cost)
+                    {
+                        "journal_entry_id": str(journal_entry_id),
+                        "account_code": "0101",  # Fixed Assets
+                        "debit": 0,
+                        "credit": float(asset.purchase_cost),
+                        "description": "Remove asset cost"
+                    },
+                ]
+
+                # Dr Loss or Cr Gain
+                if gain_or_loss < 0:
+                    # Loss on disposal
+                    journal_lines.append(
+                        {
+                            "journal_entry_id": str(journal_entry_id),
+                            "account_code": "6099",  # Loss on Disposal
+                            "debit": abs(float(gain_or_loss)),
+                            "credit": 0,
+                            "description": "Loss on asset disposal"
+                        }
+                    )
+                elif gain_or_loss > 0:
+                    # Gain on disposal
+                    journal_lines.append(
+                        {
+                            "journal_entry_id": str(journal_entry_id),
+                            "account_code": "7099",  # Gain on Disposal
+                            "debit": 0,
+                            "credit": float(gain_or_loss),
+                            "description": "Gain on asset disposal"
+                        }
+                    )
+
+                for line in journal_lines:
+                    supabase.table("journal_lines").insert(line).execute()
+
         # Update asset status
         asset.status = "disposed"
-        
         self.db.commit()
-        
+
         logger.info(f"Disposed asset {asset.asset_code}, gain/loss: {gain_or_loss}")
-        
+
         return {
             "asset_id": str(asset_id),
             "asset_code": asset.asset_code,
             "asset_name": asset.name,
-            "disposal_date": disposal_data.disposal_date,
+            "disposal_date": disposal_data.disposal_date.isoformat(),
             "sale_proceeds": float(disposal_data.sale_proceeds),
             "book_value_at_disposal": float(book_value),
             "gain_or_loss": float(gain_or_loss),
-            "journal_entry_id": str(journal_entry.id)
+            "journal_entry_id": str(journal_entry_id) if journal_entry_id else None
         }
     
     # ============ Maintenance Operations ============

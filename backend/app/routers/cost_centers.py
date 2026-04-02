@@ -4,7 +4,7 @@ Endpoints: CRUD, allocation, P&L reports
 """
 
 import logging
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session

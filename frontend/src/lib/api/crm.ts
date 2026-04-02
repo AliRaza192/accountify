@@ -4,9 +4,15 @@
  */
 
 import axios from 'axios';
-import { supabase } from '@/lib/supabase';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+const getAuthToken = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('access_token');
+  }
+  return null;
+};
 
 interface Lead {
   id: string;
@@ -38,11 +44,6 @@ interface Ticket {
   resolved_at?: string;
 }
 
-export async function getAuthToken(): Promise<string> {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token || '';
-}
-
 // ============ Leads ============
 
 export async function fetchLeads(
@@ -50,12 +51,13 @@ export async function fetchLeads(
   source?: string,
   assignedTo?: string
 ): Promise<Lead[]> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const params = new URLSearchParams();
   if (stage) params.append('stage', stage);
   if (source) params.append('source', source);
   if (assignedTo) params.append('assigned_to', assignedTo);
-  
+
   const response = await axios.get(`${API_BASE}/crm/leads?${params.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -63,7 +65,8 @@ export async function fetchLeads(
 }
 
 export async function createLead(data: Partial<Lead>): Promise<Lead> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(`${API_BASE}/crm/leads`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -71,7 +74,8 @@ export async function createLead(data: Partial<Lead>): Promise<Lead> {
 }
 
 export async function fetchLead(id: string): Promise<Lead> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.get(`${API_BASE}/crm/leads/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -79,7 +83,8 @@ export async function fetchLead(id: string): Promise<Lead> {
 }
 
 export async function updateLead(id: string, data: Partial<Lead>): Promise<Lead> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.put(`${API_BASE}/crm/leads/${id}`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -87,7 +92,8 @@ export async function updateLead(id: string, data: Partial<Lead>): Promise<Lead>
 }
 
 export async function updateLeadStage(id: string, stage: string): Promise<Lead> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.put(`${API_BASE}/crm/leads/${id}/stage`, { stage }, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -99,7 +105,8 @@ export async function convertLeadToCustomer(id: string): Promise<{
   customer_id: string;
   customer_name: string;
 }> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(`${API_BASE}/crm/leads/${id}/convert`, {}, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -112,7 +119,8 @@ export async function fetchPipelineSummary(): Promise<Array<{
   total_value: number;
   weighted_value: number;
 }>> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.get(`${API_BASE}/crm/leads/pipeline`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -126,12 +134,13 @@ export async function fetchTickets(
   priority?: string,
   customerId?: string
 ): Promise<Ticket[]> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const params = new URLSearchParams();
   if (status) params.append('status', status);
   if (priority) params.append('priority', priority);
   if (customerId) params.append('customer_id', customerId);
-  
+
   const response = await axios.get(`${API_BASE}/crm/tickets?${params.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -139,7 +148,8 @@ export async function fetchTickets(
 }
 
 export async function createTicket(data: Partial<Ticket>): Promise<Ticket> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(`${API_BASE}/crm/tickets`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -147,7 +157,8 @@ export async function createTicket(data: Partial<Ticket>): Promise<Ticket> {
 }
 
 export async function fetchTicket(id: string): Promise<Ticket> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.get(`${API_BASE}/crm/tickets/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -155,7 +166,8 @@ export async function fetchTicket(id: string): Promise<Ticket> {
 }
 
 export async function updateTicket(id: string, data: Partial<Ticket>): Promise<Ticket> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.put(`${API_BASE}/crm/tickets/${id}`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -167,7 +179,8 @@ export async function resolveTicket(
   resolutionNotes: string,
   satisfactionRating?: number
 ): Promise<Ticket> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.put(`${API_BASE}/crm/tickets/${id}/resolve`, {
     resolution_notes: resolutionNotes,
     satisfaction_rating: satisfactionRating,
@@ -187,7 +200,8 @@ export async function fetchLoyaltyProgram(): Promise<{
   tier_benefits_json?: any;
   is_active: boolean;
 }> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.get(`${API_BASE}/crm/loyalty/program`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -206,7 +220,8 @@ export async function updateLoyaltyProgram(data: {
   points_per_rupee: number;
   redemption_rate: number;
 }> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.put(`${API_BASE}/crm/loyalty/program`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -221,7 +236,8 @@ export async function fetchCustomerPoints(customerId: string): Promise<Array<{
   description?: string;
   created_at: string;
 }>> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.get(`${API_BASE}/crm/loyalty/points/${customerId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -238,7 +254,8 @@ export async function earnPoints(
   points: number;
   transaction_type: string;
 }> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(`${API_BASE}/crm/loyalty/points/earn`, {
     customer_id: customerId,
     amount_spent: amountSpent,
@@ -260,7 +277,8 @@ export async function redeemPoints(
   points: number;
   transaction_type: string;
 }> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(`${API_BASE}/crm/loyalty/points/redeem`, {
     customer_id: customerId,
     points_to_redeem: pointsToRedeem,
@@ -284,7 +302,8 @@ export async function fetchCRMDashboard(): Promise<{
   conversion_rate: number;
   top_customers: any[];
 }> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.get(`${API_BASE}/crm/dashboard`, {
     headers: { Authorization: `Bearer ${token}` },
   });

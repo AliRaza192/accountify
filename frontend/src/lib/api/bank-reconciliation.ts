@@ -4,9 +4,15 @@
  */
 
 import axios from 'axios';
-import { supabase } from '@/lib/supabase';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+const getAuthToken = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('access_token');
+  }
+  return null;
+};
 
 interface BankAccount {
   id: string;
@@ -36,15 +42,11 @@ interface PDC {
   bounce_reason?: string;
 }
 
-export async function getAuthToken(): Promise<string> {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token || '';
-}
-
 // ============ Bank Accounts ============
 
 export async function fetchBankAccounts(isActive = true): Promise<BankAccount[]> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.get(`${API_BASE}/bank-reconciliation/accounts?is_active=${isActive}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -52,7 +54,8 @@ export async function fetchBankAccounts(isActive = true): Promise<BankAccount[]>
 }
 
 export async function createBankAccount(data: Partial<BankAccount>): Promise<BankAccount> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(`${API_BASE}/bank-reconciliation/accounts`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -60,7 +63,8 @@ export async function createBankAccount(data: Partial<BankAccount>): Promise<Ban
 }
 
 export async function updateBankAccount(id: string, data: Partial<BankAccount>): Promise<BankAccount> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.put(`${API_BASE}/bank-reconciliation/accounts/${id}`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -81,7 +85,8 @@ export async function importBankStatement(
   closing_balance: number;
   transactions_count: number;
 }> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const formData = new FormData();
   formData.append('bank_account_id', bankAccountId);
   formData.append('statement_date', statementDate);
@@ -115,11 +120,12 @@ export async function fetchReconciliationSessions(
   status: string;
   completed_at?: string;
 }>> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const params = new URLSearchParams();
   if (bankAccountId) params.append('bank_account_id', bankAccountId);
   if (status) params.append('status', status);
-  
+
   const response = await axios.get(`${API_BASE}/bank-reconciliation/sessions?${params.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -137,7 +143,8 @@ export async function startReconciliationSession(data: {
   status: string;
   difference: number;
 }> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(`${API_BASE}/bank-reconciliation/sessions`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -152,7 +159,8 @@ export async function matchTransactions(
     match_type?: 'auto' | 'manual';
   }
 ): Promise<{ message: string }> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(`${API_BASE}/bank-reconciliation/sessions/${sessionId}/match`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -164,7 +172,8 @@ export async function completeReconciliation(sessionId: string): Promise<{
   status: string;
   completed_at: string;
 }> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(`${API_BASE}/bank-reconciliation/sessions/${sessionId}/complete`, {}, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -179,13 +188,14 @@ export async function fetchPDCs(
   fromDate?: string,
   toDate?: string
 ): Promise<PDC[]> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const params = new URLSearchParams();
   if (status) params.append('status', status);
   if (partyType) params.append('party_type', partyType);
   if (fromDate) params.append('from_date', fromDate);
   if (toDate) params.append('to_date', toDate);
-  
+
   const response = await axios.get(`${API_BASE}/bank-reconciliation/pdcs?${params.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -193,7 +203,8 @@ export async function fetchPDCs(
 }
 
 export async function createPDC(data: Partial<PDC>): Promise<PDC> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(`${API_BASE}/bank-reconciliation/pdcs`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -205,7 +216,8 @@ export async function updatePDCStatus(
   status: 'pending' | 'deposited' | 'cleared' | 'bounced' | 'returned',
   bounceReason?: string
 ): Promise<PDC> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.put(
     `${API_BASE}/bank-reconciliation/pdcs/${id}/status`,
     { status, bounce_reason: bounceReason },
@@ -226,7 +238,8 @@ export async function fetchPDCMaturityReport(daysAhead = 30): Promise<Array<{
   days_until_maturity: number;
   status: string;
 }>> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.get(`${API_BASE}/bank-reconciliation/pdcs/maturity-report?days_ahead=${daysAhead}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -249,7 +262,8 @@ export async function fetchCashPosition(): Promise<{
     balance: number;
   }>;
 }> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.get(`${API_BASE}/bank-reconciliation/cash-position`, {
     headers: { Authorization: `Bearer ${token}` },
   });

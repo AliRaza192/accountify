@@ -4,9 +4,15 @@
  */
 
 import axios from 'axios';
-import { supabase } from '@/lib/supabase';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+const getAuthToken = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('access_token');
+  }
+  return null;
+};
 
 interface FixedAsset {
   id: string;
@@ -38,16 +44,12 @@ interface AssetCategory {
   is_active: boolean;
 }
 
-export async function getAuthToken(): Promise<string> {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token || '';
-}
-
 export async function fetchFixedAssets(
   status?: string,
   categoryId?: string
 ): Promise<FixedAsset[]> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const params = new URLSearchParams();
   if (status) params.append('status', status);
   if (categoryId) params.append('category_id', categoryId);
@@ -62,7 +64,8 @@ export async function fetchFixedAssets(
 }
 
 export async function fetchFixedAsset(id: string): Promise<FixedAsset> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.get(`${API_BASE}/fixed-assets/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -72,7 +75,8 @@ export async function fetchFixedAsset(id: string): Promise<FixedAsset> {
 export async function createFixedAsset(
   data: Partial<FixedAsset>
 ): Promise<FixedAsset> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(`${API_BASE}/fixed-assets`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -83,7 +87,8 @@ export async function updateFixedAsset(
   id: string,
   data: Partial<FixedAsset>
 ): Promise<FixedAsset> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.put(`${API_BASE}/fixed-assets/${id}`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -91,7 +96,8 @@ export async function updateFixedAsset(
 }
 
 export async function deleteFixedAsset(id: string): Promise<void> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   await axios.delete(`${API_BASE}/fixed-assets/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -100,7 +106,8 @@ export async function deleteFixedAsset(id: string): Promise<void> {
 export async function fetchAssetCategories(
   includeInactive = false
 ): Promise<AssetCategory[]> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.get(
     `${API_BASE}/fixed-assets/asset-categories?include_inactive=${includeInactive}`,
     {
@@ -118,7 +125,8 @@ export async function runDepreciation(
   total_depreciation: number;
   journal_entries_created: number;
 }> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(
     `${API_BASE}/fixed-assets/run-depreciation`,
     {
@@ -144,7 +152,8 @@ export async function disposeAsset(
   gain_or_loss: number;
   journal_entry_id: string;
 }> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const response = await axios.post(
     `${API_BASE}/fixed-assets/${id}/disposal`,
     disposalData,
@@ -166,7 +175,8 @@ export async function logMaintenance(
     notes?: string;
   }
 ): Promise<void> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   await axios.post(`${API_BASE}/fixed-assets/${assetId}/maintenance`, data, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -175,7 +185,8 @@ export async function logMaintenance(
 export async function fetchFixedAssetRegister(
   asOfDate?: string
 ): Promise<FixedAsset[]> {
-  const token = await getAuthToken();
+  const token = getAuthToken();
+  if (!token) throw new Error('Authentication required');
   const params = asOfDate ? `?as_of_date=${asOfDate}` : '';
   const response = await axios.get(
     `${API_BASE}/fixed-assets/reports/register${params}`,
