@@ -216,7 +216,7 @@ export async function fetchAuditLogs(filters?: AuditLogFilters): Promise<{
   if (filters?.date_to) params.append('date_to', filters.date_to);
 
   const queryString = params.toString();
-  const response = await fetch(`${API_BASE}/audit-logs?${queryString}`, {
+  const response = await fetch(`${API_BASE}/audit/logs?${queryString}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error('Failed to fetch audit logs');
@@ -247,7 +247,7 @@ export async function fetchLoginHistory(page = 1, limit = 50): Promise<{
   const token = getAuthToken();
   if (!token) throw new Error('Authentication required');
   const response = await fetch(
-    `${API_BASE}/audit-logs/login-history?page=${page}&limit=${limit}`,
+    `${API_BASE}/audit/logs?action=login&page=${page}&limit=${limit}`,
     {
       headers: { Authorization: `Bearer ${token}` },
     }

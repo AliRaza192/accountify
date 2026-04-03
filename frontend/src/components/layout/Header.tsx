@@ -36,7 +36,7 @@ export default function Header({ title, onMenuClick }: HeaderProps) {
 
   const fetchBranches = async () => {
     try {
-      const response = await api.get("/api/branches")
+      const response = await api.get("/branches")
       const data: Branch[] = response.data || []
       setBranches(data)
 
