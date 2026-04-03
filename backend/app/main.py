@@ -158,6 +158,47 @@ try:
 except Exception as e:
     logger.warning(f"CRM router failed to load: {e}")
 
+# Phase 2: RBAC & Audit
+try:
+    from app.routers import roles
+    app.include_router(roles.router, prefix="/api/roles", tags=["Roles & Permissions"])
+except Exception as e:
+    logger.warning(f"Roles router failed to load: {e}")
+
+try:
+    from app.routers import audit
+    app.include_router(audit.router, prefix="/api/audit", tags=["Audit Trail"])
+except Exception as e:
+    logger.warning(f"Audit router failed to load: {e}")
+
+# Phase 2: Multi-Branch
+try:
+    from app.routers import branches
+    app.include_router(branches.router, prefix="/api/branches", tags=["Branches"])
+except Exception as e:
+    logger.warning(f"Branches router failed to load: {e}")
+
+# Phase 2: Approvals
+try:
+    from app.routers import approvals
+    app.include_router(approvals.router, prefix="/api/approvals", tags=["Approvals"])
+except Exception as e:
+    logger.warning(f"Approvals router failed to load: {e}")
+
+# Phase 2: Budget
+try:
+    from app.routers import budgets
+    app.include_router(budgets.router, prefix="/api/budgets", tags=["Budgets"])
+except Exception as e:
+    logger.warning(f"Budgets router failed to load: {e}")
+
+# Phase 2: Manufacturing
+try:
+    from app.routers import manufacturing
+    app.include_router(manufacturing.router, prefix="/api/manufacturing", tags=["Manufacturing"])
+except Exception as e:
+    logger.warning(f"Manufacturing router failed to load: {e}")
+
 
 @app.get("/")
 async def root():

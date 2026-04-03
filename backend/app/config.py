@@ -12,6 +12,25 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000"]
+    
+    # Email Configuration (for 2FA and approvals)
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    EMAIL_FROM: str = "Accountify <noreply@accountify.com>"
+    
+    # 2FA Configuration
+    OTP_EXPIRY_MINUTES: int = 5
+    OTP_MAX_REQUESTS_PER_HOUR: int = 3
+    
+    # Branch Configuration
+    DEFAULT_BRANCH_ID: int = 1
+    ENABLE_BRANCH_ISOLATION: bool = True
+    
+    # Audit Configuration
+    AUDIT_LOG_RETENTION_DAYS: int = 90
+    ENABLE_AUDIT_TRAIL: bool = True
 
     class Config:
         env_file = ".env"

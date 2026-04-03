@@ -1,23 +1,77 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Menu, Search, Bell, User, Settings, LogOut } from "lucide-react"
+import { Menu, Search, Bell, User, Settings, LogOut, Building2, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import useAuth from "@/hooks/useAuth"
+import api from "@/lib/api"
 
 interface HeaderProps {
   title: string
   onMenuClick?: () => void
 }
 
+interface Branch {
+  id: number
+  name: string
+  code: string
+  is_default: boolean
+}
+
 export default function Header({ title, onMenuClick }: HeaderProps) {
   const router = useRouter()
   const { getUser, logout } = useAuth()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [isBranchDropdownOpen, setIsBranchDropdownOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [branches, setBranches] = useState<Branch[]>([])
+  const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null)
 
   const user = getUser()
+
+  useEffect(() => {
+    fetchBranches()
+  }, [])
+
+  const fetchBranches = async () => {
+    try {
+      const response = await api.get("/api/branches")
+      const data: Branch[] = response.data || []
+      setBranches(data)
+
+      // Load selected branch from localStorage
+      const storedId = localStorage.getItem("selected_branch_id")
+      if (storedId) {
+        const stored = parseInt(storedId, 10)
+        const exists = data.find((b) => b.id === stored)
+        if (exists) {
+          setSelectedBranchId(stored)
+          return
+        }
+      }
+
+      // Default to default branch or first branch
+      const defaultBranch = data.find((b) => b.is_default)
+      if (defaultBranch) {
+        setSelectedBranchId(defaultBranch.id)
+        localStorage.setItem("selected_branch_id", String(defaultBranch.id))
+      } else if (data.length > 0) {
+        setSelectedBranchId(data[0].id)
+        localStorage.setItem("selected_branch_id", String(data[0].id))
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch branches:", error)
+    }
+  }
+
+  const handleBranchChange = (branchId: number) => {
+    setSelectedBranchId(branchId)
+    localStorage.setItem("selected_branch_id", String(branchId))
+    setIsBranchDropdownOpen(false)
+  }
+
+  const selectedBranch = branches.find((b) => b.id === selectedBranchId)
 
   const handleLogout = () => {
     logout()
@@ -51,8 +105,61 @@ export default function Header({ title, onMenuClick }: HeaderProps) {
         </div>
       </div>
 
-      {/* Right: Notifications & User */}
+      {/* Right: Branch Selector, Notifications & User */}
       <div className="flex items-center gap-2">
+        {/* Branch Selector */}
+        {branches.length > 0 && (
+          <div className="relative">
+            <button
+              onClick={() => setIsBranchDropdownOpen(!isBranchDropdownOpen)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors text-sm"
+            >
+              <Building2 className="h-4 w-4 text-gray-500" />
+              <span className="text-gray-700 max-w-32 truncate">
+                {selectedBranch?.name || "Select Branch"}
+              </span>
+              <ChevronDown className="h-3 w-3 text-gray-400" />
+            </button>
+
+            {isBranchDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setIsBranchDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 animate-in fade-in zoom-in-95">
+                  <div className="px-3 py-2 border-b border-gray-100">
+                    <p className="text-xs font-medium text-gray-500 uppercase">Switch Branch</p>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto">
+                    {branches.map((branch) => (
+                      <button
+                        key={branch.id}
+                        onClick={() => handleBranchChange(branch.id)}
+                        className={cn(
+                          "w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-50 transition-colors",
+                          selectedBranchId === branch.id ? "bg-blue-50 text-blue-700" : "text-gray-700"
+                        )}
+                      >
+                        <Building2 className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <div className="flex-1 text-left">
+                          <p className="font-medium truncate">{branch.name}</p>
+                          <p className="text-xs text-gray-500">{branch.code}</p>
+                        </div>
+                        {branch.is_default && (
+                          <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">
+                            Default
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Notifications */}
         <button className="relative p-2 rounded-lg hover:bg-gray-100 text-gray-600">
           <Bell className="h-5 w-5" />

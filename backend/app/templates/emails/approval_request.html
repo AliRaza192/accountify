@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Approval Request</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 24px; border-radius: 8px 8px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">Accountify</h1>
+        <p style="color: #dbeafe; margin: 8px 0 0; font-size: 14px;">Approval Workflow System</p>
+    </div>
+
+    <!-- Content -->
+    <div style="background: white; padding: 32px; border-radius: 0 0 8px 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h2 style="color: #111827; margin-top: 0; font-size: 20px;">Approval Required</h2>
+
+        <p style="color: #4b5563; font-size: 16px;">Dear <strong>{{approver_name}}</strong>,</p>
+
+        <p style="color: #4b5563; font-size: 16px;">A new document requires your review and approval:</p>
+
+        <!-- Document Details -->
+        <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 24px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 40%;">Document Type</td>
+                    <td style="padding: 8px 0; color: #111827; font-weight: 500;">{{document_type}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Document Number</td>
+                    <td style="padding: 8px 0; color: #111827; font-weight: 500;">{{document_number}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Amount</td>
+                    <td style="padding: 8px 0; color: #111827; font-weight: 500;">PKR {{amount}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Requested By</td>
+                    <td style="padding: 8px 0; color: #111827; font-weight: 500;">{{requested_by}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Date</td>
+                    <td style="padding: 8px 0; color: #111827; font-weight: 500;">{{request_date}}</td>
+                </tr>
+            </table>
+        </div>
+
+        {% if comments %}
+        <!-- Requester Comments -->
+        <div style="border-left: 4px solid #2563eb; padding: 12px 16px; margin: 20px 0; background: #eff6ff; border-radius: 0 4px 4px 0;">
+            <p style="color: #1e40af; margin: 0; font-size: 14px; font-style: italic;">{{comments}}</p>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div style="text-align: center; margin: 32px 0;">
+            <a href="{{approval_url}}" style="display: inline-block; background-color: #2563eb; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 16px; margin: 0 8px;">
+                &#10003; Approve
+            </a>
+            <a href="{{rejection_url}}" style="display: inline-block; background-color: #ef4444; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 16px; margin: 0 8px;">
+                &#10007; Reject
+            </a>
+        </div>
+
+        <!-- Note -->
+        <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; padding: 12px 16px; margin: 20px 0;">
+            <p style="color: #92400e; margin: 0; font-size: 14px;">
+                <strong>Note:</strong> This document will remain pending until you take action or it is reassigned.
+            </p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align: center; padding: 20px; color: #6b7280; font-size: 12px;">
+        <p>This is an automated message from Accountify. Please do not reply to this email.</p>
+        <p>&copy; {{year}} Accountify. All rights reserved.</p>
+    </div>
+</body>
+</html>

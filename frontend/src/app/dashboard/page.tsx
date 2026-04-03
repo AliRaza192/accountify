@@ -12,6 +12,11 @@ import {
   Receipt,
   BarChart2,
   Users,
+  Shield,
+  DollarSign,
+  Factory,
+  CheckCircle,
+  Building2,
 } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import api from "@/lib/api"
@@ -351,6 +356,54 @@ export default function DashboardPage() {
               <BarChart2 className="h-5 w-5 text-purple-600" />
             </div>
             <span className="text-sm font-medium text-gray-700">Reports</span>
+          </Link>
+        </div>
+        {/* Additional Quick Actions - New Modules */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-3">
+          <Link
+            href="/dashboard/manufacturing"
+            className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 hover:border-yellow-300 hover:shadow-md transition-all group"
+          >
+            <div className="p-2 rounded-lg bg-yellow-50 group-hover:bg-yellow-100 transition-colors">
+              <Factory className="h-5 w-5 text-yellow-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-700">Manufacturing</span>
+          </Link>
+          <Link
+            href="/dashboard/budget"
+            className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 hover:border-green-300 hover:shadow-md transition-all group"
+          >
+            <div className="p-2 rounded-lg bg-green-50 group-hover:bg-green-100 transition-colors">
+              <DollarSign className="h-5 w-5 text-green-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-700">Budget</span>
+          </Link>
+          <Link
+            href="/dashboard/approvals"
+            className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all group"
+          >
+            <div className="p-2 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
+              <CheckCircle className="h-5 w-5 text-blue-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-700">Approvals</span>
+          </Link>
+          <Link
+            href="/dashboard/settings/branches"
+            className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all group"
+          >
+            <div className="p-2 rounded-lg bg-indigo-50 group-hover:bg-indigo-100 transition-colors">
+              <Building2 className="h-5 w-5 text-indigo-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-700">Branches</span>
+          </Link>
+          <Link
+            href="/dashboard/settings/audit"
+            className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all group"
+          >
+            <div className="p-2 rounded-lg bg-gray-50 group-hover:bg-gray-100 transition-colors">
+              <Shield className="h-5 w-5 text-gray-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-700">Audit Trail</span>
           </Link>
         </div>
       </div>

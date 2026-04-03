@@ -18,6 +18,9 @@ import {
   ShoppingCart,
   BookOpen,
   Building2,
+  CheckCircle,
+  DollarSign,
+  Factory,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import useAuth from "@/hooks/useAuth"
@@ -139,9 +142,45 @@ const navItems: NavItem[] = [
     badge: "NEW",
   },
   {
+    label: "Manufacturing",
+    href: "/dashboard/manufacturing",
+    icon: <Factory className="h-5 w-5" />,
+    children: [
+      { label: "Dashboard", href: "/dashboard/manufacturing" },
+      { label: "BOM", href: "/dashboard/manufacturing/bom" },
+      { label: "Production Orders", href: "/dashboard/manufacturing/production" },
+    ],
+  },
+  {
+    label: "Budget",
+    href: "/dashboard/budget",
+    icon: <DollarSign className="h-5 w-5" />,
+    children: [
+      { label: "Dashboard", href: "/dashboard/budget" },
+      { label: "Create Budget", href: "/dashboard/budget/new" },
+    ],
+  },
+  {
+    label: "Approvals",
+    href: "/dashboard/approvals",
+    icon: <CheckCircle className="h-5 w-5" />,
+    children: [
+      { label: "Pending", href: "/dashboard/approvals" },
+      { label: "All Requests", href: "/dashboard/approvals?filter=all" },
+    ],
+  },
+  {
     label: "Settings",
-    href: "/settings",
+    href: "/dashboard/settings",
     icon: <Settings className="h-5 w-5" />,
+    children: [
+      { label: "Company Profile", href: "/dashboard/settings" },
+      { label: "Users", href: "/dashboard/settings/users" },
+      { label: "Roles & Permissions", href: "/dashboard/settings/roles" },
+      { label: "Branches", href: "/dashboard/settings/branches" },
+      { label: "Audit Trail", href: "/dashboard/settings/audit" },
+      { label: "Login History", href: "/dashboard/settings/login-history" },
+    ],
   },
 ]
 
