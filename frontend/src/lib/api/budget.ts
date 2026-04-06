@@ -3,14 +3,7 @@
  * Handles all API calls for budget management
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-
-const getAuthToken = (): string | null => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('access_token');
-  }
-  return null;
-};
+import api from '@/lib/api';
 
 export interface Budget {
   id: number;
@@ -79,50 +72,24 @@ export interface CreateBudgetData {
 }
 
 export async function fetchBudgets(fiscalYear?: number, status?: string): Promise<Budget[]> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const params = new URLSearchParams();
-  if (fiscalYear) params.append('fiscal_year', fiscalYear.toString());
-  if (status) params.append('status', status);
-  const qs = params.toString();
-  const response = await fetch(`${API_BASE}/budgets${qs ? `?${qs}` : ''}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) throw new Error('Failed to fetch budgets');
-  return response.json();
+  const params: any = {};
+  if (fiscalYear) params.fiscal_year = fiscalYear;
+  if (status) params.status = status;
+  const response = await api.get('/api/budgets', { params });
+  return response.data;
 }
 
 export async function fetchBudget(id: number): Promise<Budget> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const response = await fetch(`${API_BASE}/budgets/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) throw new Error('Failed to fetch budget');
-  return response.json();
+  const response = await api.get(`/api/budgets/${id}`);
+  return response.data;
 }
 
 export async function createBudget(data: CreateBudgetData): Promise<Budget> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const response = await fetch(`${API_BASE}/budgets`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error('Failed to create budget');
-  return response.json();
+  const response = await api.post('/api/budgets', data);
+  return response.data;
 }
 
 export async function fetchBudgetVsActual(id: number): Promise<BudgetVsActual> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const response = await fetch(`${API_BASE}/budgets/${id}/vs-actual`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) throw new Error('Failed to fetch budget vs actual');
-  return response.json();
+  const response = await api.get(`/api/budgets/${id}/vs-actual`);
+  return response.data;
 }

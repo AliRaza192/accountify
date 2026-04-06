@@ -3,16 +3,14 @@
  * Handles all API calls to the Bank Reconciliation backend
  */
 
+import api from '@/lib/api';
 import axios from 'axios';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
-const getAuthToken = (): string | null => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('access_token');
-  }
-  return null;
-};
+function getAuthToken(): string | null {
+  return typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+}
 
 interface BankAccount {
   id: string;
@@ -45,29 +43,19 @@ interface PDC {
 // ============ Bank Accounts ============
 
 export async function fetchBankAccounts(isActive = true): Promise<BankAccount[]> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const response = await axios.get(`${API_BASE}/bank-reconciliation/accounts?is_active=${isActive}`, {
-    headers: { Authorization: `Bearer ${token}` },
+  const response = await api.get(`/api/bank-reconciliation/accounts`, {
+    params: { is_active: isActive },
   });
   return response.data;
 }
 
 export async function createBankAccount(data: Partial<BankAccount>): Promise<BankAccount> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const response = await axios.post(`${API_BASE}/bank-reconciliation/accounts`, data, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const response = await api.post(`/api/bank-reconciliation/accounts`, data);
   return response.data;
 }
 
 export async function updateBankAccount(id: string, data: Partial<BankAccount>): Promise<BankAccount> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const response = await axios.put(`${API_BASE}/bank-reconciliation/accounts/${id}`, data, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const response = await api.put(`/api/bank-reconciliation/accounts/${id}`, data);
   return response.data;
 }
 
@@ -85,8 +73,6 @@ export async function importBankStatement(
   closing_balance: number;
   transactions_count: number;
 }> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
   const formData = new FormData();
   formData.append('bank_account_id', bankAccountId);
   formData.append('statement_date', statementDate);
@@ -94,11 +80,8 @@ export async function importBankStatement(
   formData.append('closing_balance', closingBalance.toString());
   formData.append('file', file);
 
-  const response = await axios.post(`${API_BASE}/bank-reconciliation/import-statement`, formData, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'multipart/form-data',
-    },
+  const response = await api.post(`/api/bank-reconciliation/import-statement`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;
 }
@@ -120,15 +103,11 @@ export async function fetchReconciliationSessions(
   status: string;
   completed_at?: string;
 }>> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const params = new URLSearchParams();
-  if (bankAccountId) params.append('bank_account_id', bankAccountId);
-  if (status) params.append('status', status);
+  const params: Record<string, string> = {};
+  if (bankAccountId) params.bank_account_id = bankAccountId;
+  if (status) params.status = status;
 
-  const response = await axios.get(`${API_BASE}/bank-reconciliation/sessions?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const response = await api.get(`/api/bank-reconciliation/sessions`, { params });
   return response.data;
 }
 
@@ -143,11 +122,7 @@ export async function startReconciliationSession(data: {
   status: string;
   difference: number;
 }> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const response = await axios.post(`${API_BASE}/bank-reconciliation/sessions`, data, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const response = await api.post(`/api/bank-reconciliation/sessions`, data);
   return response.data;
 }
 
@@ -159,11 +134,7 @@ export async function matchTransactions(
     match_type?: 'auto' | 'manual';
   }
 ): Promise<{ message: string }> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const response = await axios.post(`${API_BASE}/bank-reconciliation/sessions/${sessionId}/match`, data, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const response = await api.post(`/api/bank-reconciliation/sessions/${sessionId}/match`, data);
   return response.data;
 }
 

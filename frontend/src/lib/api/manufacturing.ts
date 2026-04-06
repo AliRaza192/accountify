@@ -3,14 +3,7 @@
  * Handles all API calls for BOM and Production
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-
-const getAuthToken = (): string | null => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('access_token');
-  }
-  return null;
-};
+import api from '@/lib/api';
 
 export interface BOM {
   id: number;
@@ -81,74 +74,33 @@ export interface CreateProductionOrderData {
 }
 
 export async function fetchBOMs(status?: string): Promise<BOM[]> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const params = status ? `?status=${status}` : '';
-  const response = await fetch(`${API_BASE}/manufacturing/bom${params}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) throw new Error('Failed to fetch BOMs');
-  return response.json();
+  const params = status ? { status } : {};
+  const response = await api.get('/api/manufacturing/bom', { params });
+  return response.data;
 }
 
 export async function fetchBOM(id: number): Promise<BOM> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const response = await fetch(`${API_BASE}/manufacturing/bom/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) throw new Error('Failed to fetch BOM');
-  return response.json();
+  const response = await api.get(`/api/manufacturing/bom/${id}`);
+  return response.data;
 }
 
 export async function createBOM(data: CreateBOMData): Promise<BOM> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const response = await fetch(`${API_BASE}/manufacturing/bom`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error('Failed to create BOM');
-  return response.json();
+  const response = await api.post('/api/manufacturing/bom', data);
+  return response.data;
 }
 
 export async function activateBOM(id: number): Promise<BOM> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const response = await fetch(`${API_BASE}/manufacturing/bom/${id}/activate`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) throw new Error('Failed to activate BOM');
-  return response.json();
+  const response = await api.post(`/api/manufacturing/bom/${id}/activate`);
+  return response.data;
 }
 
 export async function fetchProductionOrders(status?: string): Promise<ProductionOrder[]> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const params = status ? `?status=${status}` : '';
-  const response = await fetch(`${API_BASE}/manufacturing/orders${params}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) throw new Error('Failed to fetch production orders');
-  return response.json();
+  const params = status ? { status } : {};
+  const response = await api.get('/api/manufacturing/orders', { params });
+  return response.data;
 }
 
 export async function createProductionOrder(data: CreateProductionOrderData): Promise<ProductionOrder> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const response = await fetch(`${API_BASE}/manufacturing/orders`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error('Failed to create production order');
-  return response.json();
+  const response = await api.post('/api/manufacturing/orders', data);
+  return response.data;
 }

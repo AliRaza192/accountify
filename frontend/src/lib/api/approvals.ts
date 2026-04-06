@@ -3,14 +3,7 @@
  * Handles all API calls for approval workflows
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-
-const getAuthToken = (): string | null => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('access_token');
-  }
-  return null;
-};
+import api from '@/lib/api';
 
 export interface ApprovalRequest {
   id: number;
@@ -40,61 +33,31 @@ export interface ApprovalAction {
 }
 
 export async function fetchApprovalRequests(status?: string): Promise<ApprovalRequest[]> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const params = status ? `?status=${status}` : '';
-  const response = await fetch(`${API_BASE}/approvals/requests${params}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) throw new Error('Failed to fetch approval requests');
-  return response.json();
+  const params = status ? { status } : {};
+  const response = await api.get('/api/approvals/requests', { params });
+  return response.data;
 }
 
 export async function fetchApprovalRequest(id: number): Promise<{
   request: ApprovalRequest;
   actions: ApprovalAction[];
 }> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const response = await fetch(`${API_BASE}/approvals/requests/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) throw new Error('Failed to fetch approval request');
-  return response.json();
+  const response = await api.get(`/api/approvals/requests/${id}`);
+  return response.data;
 }
 
 export async function approveRequest(
   id: number,
   data: { comments?: string; delegate_to?: string }
 ): Promise<ApprovalRequest> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const response = await fetch(`${API_BASE}/approvals/requests/${id}/approve`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error('Failed to approve request');
-  return response.json();
+  const response = await api.post(`/api/approvals/requests/${id}/approve`, data);
+  return response.data;
 }
 
 export async function rejectRequest(
   id: number,
   data: { comments: string }
 ): Promise<ApprovalRequest> {
-  const token = getAuthToken();
-  if (!token) throw new Error('Authentication required');
-  const response = await fetch(`${API_BASE}/approvals/requests/${id}/reject`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error('Failed to reject request');
-  return response.json();
+  const response = await api.post(`/api/approvals/requests/${id}/reject`, data);
+  return response.data;
 }

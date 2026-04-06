@@ -105,8 +105,18 @@ class UserResponse(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: Optional[str] = None
     token_type: str = "bearer"
     user: UserResponse
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class RefreshResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
 
 
 class MeResponse(BaseModel):
@@ -193,6 +203,7 @@ async def register(request: RegisterRequest):
         # Step 7: Return response
         return TokenResponse(
             access_token=sign_in_response.session.access_token,
+            refresh_token=sign_in_response.session.refresh_token,
             token_type="bearer",
             user=UserResponse(
                 id=user_id,
@@ -254,6 +265,7 @@ async def login(request: LoginRequest):
         # Step 3: Return response
         return TokenResponse(
             access_token=session.access_token,
+            refresh_token=session.refresh_token,
             token_type="bearer",
             user=UserResponse(
                 id=user.id,
@@ -279,6 +291,33 @@ async def login(request: LoginRequest):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
+        )
+
+
+@router.post("/refresh", response_model=RefreshResponse)
+async def refresh_token(request: RefreshRequest):
+    """Refresh access token using refresh token"""
+    try:
+        # Use Supabase to exchange refresh token for new session
+        session_response = supabase.auth.refresh_session(request.refresh_token)
+        
+        if not session_response.session or not session_response.session.access_token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired refresh token"
+            )
+
+        return RefreshResponse(
+            access_token=session_response.session.access_token,
+            token_type="bearer"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Token refresh failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Failed to refresh token"
         )
 
 

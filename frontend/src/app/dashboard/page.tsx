@@ -106,7 +106,7 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     try {
       setError(null)
-      const response = await api.get("/reports/dashboard")
+      const response = await api.get("/api/reports/dashboard")
       setData(response.data)
       
       // Generate mock monthly data for chart (last 6 months)

@@ -38,16 +38,18 @@ function LoginFormContent() {
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true)
     try {
-      const response = await api.post("/auth/login", {
+      const response = await api.post("/api/auth/login", {
         email: data.email,
         password: data.password,
       })
 
-      const { access_token, user } = response.data
+      const { access_token, refresh_token, user } = response.data
 
       localStorage.setItem("access_token", access_token)
+      localStorage.setItem("refresh_token", refresh_token)
+      
       if (data.remember) {
-        localStorage.setItem("refresh_token", access_token)
+        // Could extend persistence here if needed
       }
 
       toast({
