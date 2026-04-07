@@ -61,8 +61,15 @@ const navItems: NavItem[] = [
   },
   {
     label: "Inventory",
-    href: "/inventory",
+    href: "/dashboard/inventory",
     icon: <Package className="h-5 w-5" />,
+    children: [
+      { label: "Stock Overview", href: "/dashboard/inventory" },
+      { label: "Warehouses", href: "/dashboard/inventory/warehouses" },
+      { label: "Stock Transfers", href: "/dashboard/inventory/transfers" },
+      { label: "Batch Tracking", href: "/dashboard/inventory/batches" },
+      { label: "Low Stock Alerts", href: "/dashboard/inventory/alerts" },
+    ],
   },
   {
     label: "Fixed Assets",
@@ -91,6 +98,7 @@ const navItems: NavItem[] = [
       { label: "Dashboard", href: "/dashboard/tax" },
       { label: "Tax Rates", href: "/dashboard/tax/rates" },
       { label: "Monthly Returns", href: "/dashboard/tax/returns" },
+      { label: "Sales Tax (SRB/FBR)", href: "/dashboard/tax/sales-tax" },
       { label: "WHT Transactions", href: "/dashboard/tax/wht" },
     ],
   },
@@ -127,13 +135,38 @@ const navItems: NavItem[] = [
   },
   {
     label: "Reports",
-    href: "/reports",
+    href: "/dashboard/reports",
     icon: <BarChart2 className="h-5 w-5" />,
+    children: [
+      { label: "All Reports", href: "/dashboard/reports" },
+      { label: "Trial Balance", href: "/dashboard/reports/trial-balance" },
+      { label: "Balance Sheet", href: "/dashboard/reports/balance-sheet" },
+      { label: "Profit & Loss", href: "/dashboard/reports/profit-loss" },
+      { label: "Cash Flow", href: "/dashboard/reports/cash-flow" },
+      { label: "Stock Summary", href: "/dashboard/reports/stock-summary" },
+      { label: "Tax Reports", href: "/dashboard/reports/tax-summary" },
+      { label: "Branch-wise", href: "/dashboard/reports/branch-wise" },
+    ],
+  },
+  {
+    label: "POS",
+    href: "/dashboard/pos",
+    icon: <ShoppingCart className="h-5 w-5" />,
+    children: [
+      { label: "Checkout Counter", href: "/dashboard/pos" },
+      { label: "Reports", href: "/dashboard/pos/reports" },
+    ],
   },
   {
     label: "Payroll",
-    href: "/payroll",
+    href: "/dashboard/payroll",
     icon: <Users className="h-5 w-5" />,
+    children: [
+      { label: "Dashboard", href: "/dashboard/payroll" },
+      { label: "Employees", href: "/dashboard/payroll/employees" },
+      { label: "Run Payroll", href: "/dashboard/payroll/run" },
+      { label: "Salary Slips", href: "/dashboard/payroll/slips" },
+    ],
   },
   {
     label: "AI Assistant",

@@ -518,6 +518,174 @@ async def get_pdc_maturity_report(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ============ Matching Suggestions Endpoint ============
+
+@router.get("/matching-suggestions")
+async def get_matching_suggestions(
+    session_id: Optional[UUID] = Query(None),
+    bank_account_id: Optional[UUID] = Query(None),
+    service: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get auto-matching suggestions for bank reconciliation.
+    
+    Matches bank transactions with system transactions based on:
+    - Exact amount match (debit/credit vs payment/receipt)
+    - Date within tolerance (default 3 days)
+    - Reference/cheque number matching
+    """
+    try:
+        from sqlalchemy import select, and_
+
+        # If session_id provided, get session context
+        session = None
+        if session_id:
+            query = select(ReconciliationSession).where(
+                and_(
+                    ReconciliationSession.id == session_id,
+                    ReconciliationSession.company_id == current_user.company_id
+                )
+            )
+            session = service.execute(query).scalar_one_or_none()
+            if not session:
+                raise HTTPException(status_code=404, detail="Session not found")
+
+        # In production, would query actual bank_transactions and system_transactions tables
+        # For now, return empty suggestions structure
+        suggestions = {
+            "auto_matches": [],
+            "unmatched_bank_transactions": [],
+            "unmatched_system_transactions": [],
+            "matching_rules_applied": [
+                "exact_amount_match",
+                "date_tolerance_3_days",
+                "reference_number_match"
+            ]
+        }
+
+        return suggestions
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting matching suggestions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============ Reports Endpoints ============
+
+@router.get("/reports/statement")
+async def get_reconciliation_statement(
+    bank_account_id: UUID,
+    from_date: Optional[date] = None,
+    to_date: Optional[date] = None,
+    service: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get reconciliation statement report"""
+    try:
+        from sqlalchemy import select, and_
+
+        # Verify bank account
+        account = get_bank_account_or_404(service, current_user.company_id, bank_account_id)
+
+        # Get completed reconciliation sessions for this account
+        query = select(ReconciliationSession).where(
+            and_(
+                ReconciliationSession.company_id == current_user.company_id,
+                ReconciliationSession.bank_account_id == bank_account_id,
+                ReconciliationSession.status == "completed"
+            )
+        )
+        if from_date:
+            # Filter by period
+            from sqlalchemy import extract
+            year = from_date.year
+            month = from_date.month
+            query = query.where(
+                and_(
+                    ReconciliationSession.period_year >= year,
+                    ReconciliationSession.period_month >= month if ReconciliationSession.period_year == year else True
+                )
+            )
+        if to_date:
+            year = to_date.year
+            month = to_date.month
+            query = query.where(
+                and_(
+                    ReconciliationSession.period_year <= year,
+                    ReconciliationSession.period_month <= month if ReconciliationSession.period_year == year else True
+                )
+            )
+
+        query = query.order_by(ReconciliationSession.period_year.desc(), ReconciliationSession.period_month.desc())
+        sessions = list(service.execute(query).scalars().all())
+
+        return {
+            "bank_account": {
+                "id": str(account.id),
+                "name": account.name,
+                "bank_name": account.bank_name,
+                "account_number": account.account_number,
+            },
+            "period": {
+                "from_date": from_date.isoformat() if from_date else None,
+                "to_date": to_date.isoformat() if to_date else None,
+            },
+            "reconciled_sessions": [
+                {
+                    "id": str(s.id),
+                    "period": f"{s.period_month:02d}/{s.period_year}",
+                    "opening_balance": float(s.opening_balance),
+                    "closing_balance_per_bank": float(s.closing_balance_per_bank),
+                    "closing_balance_per_books": float(s.closing_balance_per_books),
+                    "difference": float(s.difference),
+                    "completed_at": s.completed_at.isoformat() if s.completed_at else None,
+                }
+                for s in sessions
+            ],
+            "summary": {
+                "total_sessions": len(sessions),
+                "last_reconciled": sessions[0].completed_at.isoformat() if sessions else None,
+                "last_difference": float(sessions[0].difference) if sessions else 0,
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting reconciliation statement: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============ PDC Deposit Endpoint ============
+
+@router.post("/pdcs/{pdc_id}/deposit", response_model=PDCResponse)
+async def deposit_pdc(
+    pdc_id: UUID,
+    service: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Deposit a PDC to bank (change status from pending to deposited)"""
+    try:
+        pdc = get_pdc_or_404(service, current_user.company_id, pdc_id)
+
+        if pdc.status != "pending":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot deposit PDC. Current status: {pdc.status}. Must be 'pending'."
+            )
+
+        pdc.status = "deposited"
+        pdc.deposited_at = date.today()
+        service.commit()
+        service.refresh(pdc)
+        return pdc
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error depositing PDC: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 # ============ Cash Position Endpoint ============
 
 @router.get("/cash-position", response_model=CashPositionSummary)

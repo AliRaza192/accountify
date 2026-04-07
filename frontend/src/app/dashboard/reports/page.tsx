@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   ArrowUpDown,
   FileBarChart,
+  GitBranch,
 } from "lucide-react"
 
 interface ReportCard {
@@ -74,16 +75,9 @@ const salesReports: ReportCard[] = [
     color: "bg-blue-100 text-blue-600",
   },
   {
-    title: "Sales by Product",
-    description: "Product-wise sales breakdown",
-    href: "/dashboard/reports/sales-by-product",
-    icon: <Package className="h-6 w-6" />,
-    color: "bg-purple-100 text-purple-600",
-  },
-  {
     title: "Outstanding Receivables",
     description: "Unpaid invoices and amounts due",
-    href: "/dashboard/reports/receivables",
+    href: "/dashboard/reports/outstanding-receivables",
     icon: <Clock className="h-6 w-6" />,
     color: "bg-yellow-100 text-yellow-600",
   },
@@ -96,13 +90,6 @@ const purchaseReports: ReportCard[] = [
     href: "/dashboard/reports/purchase-summary",
     icon: <Truck className="h-6 w-6" />,
     color: "bg-green-100 text-green-600",
-  },
-  {
-    title: "Vendor Ledger",
-    description: "Transaction history by vendor",
-    href: "/dashboard/reports/vendor-ledger",
-    icon: <Building className="h-6 w-6" />,
-    color: "bg-blue-100 text-blue-600",
   },
   {
     title: "Outstanding Payables",
@@ -121,29 +108,25 @@ const inventoryReports: ReportCard[] = [
     icon: <Warehouse className="h-6 w-6" />,
     color: "bg-green-100 text-green-600",
   },
+]
+
+const taxReports: ReportCard[] = [
   {
-    title: "Low Stock Alert",
-    description: "Items below reorder level",
-    href: "/dashboard/reports/low-stock",
-    icon: <AlertTriangle className="h-6 w-6" />,
-    color: "bg-red-100 text-red-600",
-  },
-  {
-    title: "Stock Movement",
-    description: "Inventory in/out movements",
-    href: "/dashboard/reports/stock-movement",
-    icon: <ArrowUpDown className="h-6 w-6" />,
-    color: "bg-blue-100 text-blue-600",
+    title: "Tax Summary",
+    description: "Sales tax and WHT reports (FBR/SRB)",
+    href: "/dashboard/reports/tax-summary",
+    icon: <FileBarChart className="h-6 w-6" />,
+    color: "bg-purple-100 text-purple-600",
   },
 ]
 
-const otherReports: ReportCard[] = [
+const branchReports: ReportCard[] = [
   {
-    title: "Tax Report",
-    description: "Sales tax and income tax summary",
-    href: "/dashboard/reports/tax",
-    icon: <FileBarChart className="h-6 w-6" />,
-    color: "bg-purple-100 text-purple-600",
+    title: "Branch-wise P&L",
+    description: "Branch-wise revenue and expenses",
+    href: "/dashboard/reports/branch-wise",
+    icon: <GitBranch className="h-6 w-6" />,
+    color: "bg-cyan-100 text-cyan-600",
   },
 ]
 
@@ -195,11 +178,21 @@ export default function ReportsPage() {
         </div>
       </section>
 
-      {/* Other Reports */}
+      {/* Tax Reports */}
       <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Other Reports</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Tax Reports</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {otherReports.map((report) => (
+          {taxReports.map((report) => (
+            <ReportCard key={report.title} report={report} />
+          ))}
+        </div>
+      </section>
+
+      {/* Branch Reports */}
+      <section>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Branch Reports</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {branchReports.map((report) => (
             <ReportCard key={report.title} report={report} />
           ))}
         </div>

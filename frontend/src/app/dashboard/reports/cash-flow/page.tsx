@@ -1,20 +1,12 @@
 "use client"
 
-import { useState } from "react"
-import { Download, FileDown } from "lucide-react"
+import { useState, useCallback } from "react"
+import { Download, FileDown, Printer, Loader2 } from "lucide-react"
 import api from "@/lib/api"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, formatDate } from "@/lib/utils"
 import { useToast } from "@/components/ui/toaster"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/ui/page-header"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 
 interface CashFlowItem {
   description: string
@@ -37,49 +29,117 @@ interface CashFlowData {
   closing_balance: number
 }
 
+const REPORT_TITLE = "Cash Flow Statement"
+const COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || "Company"
+
 export default function CashFlowReportPage() {
   const { toast } = useToast()
   const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), 0, 1).toISOString().split("T")[0])
   const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0])
   const [isLoading, setIsLoading] = useState(false)
   const [data, setData] = useState<CashFlowData | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const generateReport = async () => {
+  const generateReport = useCallback(async () => {
     setIsLoading(true)
+    setError(null)
     try {
       const response = await api.get("/api/reports/cash-flow", {
         params: { start_date: startDate, end_date: endDate },
       })
       setData(response.data.data)
-    } catch (error: any) {
-      console.error("Failed to generate report:", error)
+      if (!response.data.success) {
+        setError(response.data.message || "Failed to generate report")
+      }
+    } catch (err: any) {
+      console.error("Failed to generate report:", err)
+      const msg = err.response?.data?.detail || "Failed to generate Cash Flow Statement"
+      setError(msg)
       toast({
         title: "Error",
-        description: "Failed to generate Cash Flow Statement",
-        
+        description: msg,
+        variant: "error",
       })
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [startDate, endDate, toast])
 
-  const handleExport = (format: "pdf" | "excel") => {
-    toast({
-      title: "Info",
-      description: `${format.toUpperCase()} export coming soon`,
-      
-    })
-  }
+  const handlePrint = useCallback(() => {
+    window.print()
+  }, [])
+
+  const handleExportCSV = useCallback(() => {
+    if (!data) return
+    const headers = ["Section", "Description", "Amount (PKR)"]
+    const rows: string[][] = []
+
+    rows.push(["Opening Balance", "", data.opening_balance.toFixed(2)])
+    rows.push([])
+
+    rows.push(["OPERATING ACTIVITIES"])
+    data.operating.items.forEach((item) => rows.push(["Operating", item.description, item.amount.toFixed(2)]))
+    rows.push(["", "Net Cash from Operating", data.operating.total.toFixed(2)])
+    rows.push([])
+
+    rows.push(["INVESTING ACTIVITIES"])
+    data.investing.items.forEach((item) => rows.push(["Investing", item.description, item.amount.toFixed(2)]))
+    rows.push(["", "Net Cash from Investing", data.investing.total.toFixed(2)])
+    rows.push([])
+
+    rows.push(["FINANCING ACTIVITIES"])
+    data.financing.items.forEach((item) => rows.push(["Financing", item.description, item.amount.toFixed(2)]))
+    rows.push(["", "Net Cash from Financing", data.financing.total.toFixed(2)])
+    rows.push([])
+
+    rows.push(["Summary", "Net Change in Cash", data.net_cash_flow.toFixed(2)])
+    rows.push(["Summary", "Closing Balance", data.closing_balance.toFixed(2)])
+
+    const csv = [headers, ...rows].map((r) => r.join(",")).join("\n")
+    const blob = new Blob([csv], { type: "text/csv" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `cash-flow-${startDate}-to-${endDate}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast({ title: "Exported", description: "CSV file downloaded" })
+  }, [data, startDate, endDate, toast])
+
+  const renderSection = (title: string, section: CashFlowSection) => (
+    <div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b print:mb-2 print:pb-1">
+        {title}
+      </h3>
+      {section.items.length === 0 ? (
+        <p className="text-sm text-gray-400 py-2">No transactions</p>
+      ) : (
+        <div className="space-y-2">
+          {section.items.map((item, index) => (
+            <div key={index} className="flex justify-between text-sm">
+              <span className="text-gray-600">{item.description}</span>
+              <span className={`font-medium ${item.amount >= 0 ? "text-green-600" : "text-red-600"}`}>
+                {item.amount >= 0 ? "+" : "-"}{formatCurrency(Math.abs(item.amount))}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex justify-between items-center mt-4 pt-4 border-t bg-gray-50 px-4 py-2 rounded print:bg-gray-100">
+        <span className="font-semibold text-gray-900">Net {title}</span>
+        <span className={`font-bold ${section.total >= 0 ? "text-green-600" : "text-red-600"}`}>
+          {formatCurrency(section.total)}
+        </span>
+      </div>
+    </div>
+  )
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Cash Flow Statement"
-        subtitle="Cash inflows and outflows"
-      />
+      <PageHeader title={REPORT_TITLE} subtitle="Cash inflows and outflows" />
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      {/* Filters - hide when printing */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 print:hidden">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
@@ -104,32 +164,43 @@ export default function CashFlowReportPage() {
             disabled={isLoading}
             className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
           >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Generate Report
           </Button>
           <div className="flex gap-2 ml-auto">
-            <Button variant="outline" className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              PDF
+            <Button onClick={handlePrint} variant="outline" className="flex items-center gap-2" disabled={!data}>
+              <Printer className="h-4 w-4" />
+              Print
             </Button>
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button onClick={handleExportCSV} variant="outline" className="flex items-center gap-2" disabled={!data}>
               <FileDown className="h-4 w-4" />
               Excel
             </Button>
           </div>
         </div>
+        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+          <p className="mt-4 text-gray-500">Generating Cash Flow Statement...</p>
+        </div>
+      )}
+
       {/* Report Content */}
-      {data && (
+      {data && !isLoading && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden print:shadow-none print:border-0">
-          <div className="p-6 border-b border-gray-100">
-            <h2 className="text-xl font-bold text-gray-900 text-center">Cash Flow Statement</h2>
+          <div className="p-6 border-b border-gray-100 print:p-4">
+            <h2 className="text-xl font-bold text-gray-900 text-center">{COMPANY_NAME}</h2>
+            <h3 className="text-lg font-semibold text-gray-700 text-center mt-1">{REPORT_TITLE}</h3>
             <p className="text-sm text-gray-500 text-center mt-1">
-              {new Date(data.start_date).toLocaleDateString()} - {new Date(data.end_date).toLocaleDateString()}
+              {formatDate(data.start_date, "long")} - {formatDate(data.end_date, "long")}
             </p>
           </div>
 
-          <div className="p-6 space-y-8">
+          <div className="p-6 space-y-8 print:p-4 print:space-y-4">
             {/* Opening Balance */}
             <div className="flex justify-between items-center pb-4 border-b">
               <span className="font-medium text-gray-700">Opening Cash Balance</span>
@@ -137,79 +208,16 @@ export default function CashFlowReportPage() {
             </div>
 
             {/* Operating Activities */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
-                OPERATING ACTIVITIES
-              </h3>
-              <div className="space-y-2">
-                {data.operating.items.map((item, index) => (
-                  <div key={index} className="flex justify-between text-sm">
-                    <span className="text-gray-600">{item.description}</span>
-                    <span className={`font-medium ${item.amount >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      {formatCurrency(Math.abs(item.amount))}
-                      {item.amount < 0 && " (Out)"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-between items-center mt-4 pt-4 border-t bg-gray-50 px-4 py-2 rounded">
-                <span className="font-semibold text-gray-900">Net Cash from Operating</span>
-                <span className={`font-bold ${data.operating.total >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  {formatCurrency(data.operating.total)}
-                </span>
-              </div>
-            </div>
+            {renderSection("Operating Activities", data.operating)}
 
             {/* Investing Activities */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
-                INVESTING ACTIVITIES
-              </h3>
-              <div className="space-y-2">
-                {data.investing.items.map((item, index) => (
-                  <div key={index} className="flex justify-between text-sm">
-                    <span className="text-gray-600">{item.description}</span>
-                    <span className={`font-medium ${item.amount >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      {formatCurrency(Math.abs(item.amount))}
-                      {item.amount < 0 && " (Out)"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-between items-center mt-4 pt-4 border-t bg-gray-50 px-4 py-2 rounded">
-                <span className="font-semibold text-gray-900">Net Cash from Investing</span>
-                <span className={`font-bold ${data.investing.total >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  {formatCurrency(data.investing.total)}
-                </span>
-              </div>
-            </div>
+            {renderSection("Investing Activities", data.investing)}
 
             {/* Financing Activities */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b">
-                FINANCING ACTIVITIES
-              </h3>
-              <div className="space-y-2">
-                {data.financing.items.map((item, index) => (
-                  <div key={index} className="flex justify-between text-sm">
-                    <span className="text-gray-600">{item.description}</span>
-                    <span className={`font-medium ${item.amount >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      {formatCurrency(Math.abs(item.amount))}
-                      {item.amount < 0 && " (Out)"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-between items-center mt-4 pt-4 border-t bg-gray-50 px-4 py-2 rounded">
-                <span className="font-semibold text-gray-900">Net Cash from Financing</span>
-                <span className={`font-bold ${data.financing.total >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  {formatCurrency(data.financing.total)}
-                </span>
-              </div>
-            </div>
+            {renderSection("Financing Activities", data.financing)}
 
             {/* Summary */}
-            <div className="border-t-2 border-gray-300 pt-6 space-y-3">
+            <div className="border-t-2 border-gray-300 pt-6 space-y-3 print:pt-4">
               <div className="flex justify-between items-center">
                 <span className="font-bold text-gray-900">Net Increase/(Decrease) in Cash</span>
                 <span className={`font-bold text-lg ${data.net_cash_flow >= 0 ? "text-green-600" : "text-red-600"}`}>
@@ -220,7 +228,7 @@ export default function CashFlowReportPage() {
                 <span className="font-medium text-gray-700">Opening Balance</span>
                 <span className="font-medium text-gray-900">{formatCurrency(data.opening_balance)}</span>
               </div>
-              <div className="flex justify-between items-center bg-blue-50 px-4 py-3 rounded-lg">
+              <div className="flex justify-between items-center bg-blue-50 px-4 py-3 rounded-lg print:bg-blue-50">
                 <span className="font-bold text-gray-900 text-lg">Closing Cash Balance</span>
                 <span className="font-bold text-blue-600 text-xl">{formatCurrency(data.closing_balance)}</span>
               </div>

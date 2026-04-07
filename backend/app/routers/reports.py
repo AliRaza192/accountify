@@ -695,21 +695,6 @@ async def create_expense(
 
 # ==================== CASH FLOW ENDPOINT ====================
 
-class CashFlowItem(BaseModel):
-    description: str
-    amount: Decimal
-
-
-class CashFlowSection(BaseModel):
-    items: List[CashFlowItem]
-    total: Decimal
-
-
-class CashFlowResponse(BaseModel):
-    success: bool
-    data: dict
-    message: str
-
 
 @router.get("/cash-flow", response_model=CashFlowResponse)
 async def get_cash_flow(
@@ -780,22 +765,6 @@ async def get_cash_flow(
 
 
 # ==================== CUSTOMER LEDGER ENDPOINT ====================
-
-class LedgerEntry(BaseModel):
-    id: UUID
-    date: datetime
-    description: str
-    reference: str
-    debit: Decimal
-    credit: Decimal
-    balance: Decimal
-
-
-class CustomerLedgerResponse(BaseModel):
-    success: bool
-    data: dict
-    message: str
-
 
 @router.get("/customer-ledger/{customer_id}", response_model=CustomerLedgerResponse)
 async def get_customer_ledger(
@@ -875,27 +844,6 @@ async def get_customer_ledger(
 
 
 # ==================== SALES SUMMARY ENDPOINT ====================
-
-class SalesSummaryItem(BaseModel):
-    period: str
-    invoices_count: int
-    subtotal: Decimal
-    tax: Decimal
-    total: Decimal
-    collected: Decimal
-    outstanding: Decimal
-
-
-class TopCustomer(BaseModel):
-    name: str
-    amount: Decimal
-
-
-class SalesSummaryResponse(BaseModel):
-    success: bool
-    data: dict
-    message: str
-
 
 @router.get("/sales-summary", response_model=SalesSummaryResponse)
 async def get_sales_summary(
@@ -1082,4 +1030,539 @@ async def get_outstanding_receivables(
             "invoices": invoices,
         },
         message="Outstanding Receivables report generated successfully"
+    )
+
+
+# ==================== PURCHASE SUMMARY ENDPOINT ====================
+
+class PurchaseSummaryItem(BaseModel):
+    period: str
+    bills_count: int
+    subtotal: Decimal
+    tax: Decimal
+    total: Decimal
+    paid: Decimal
+    outstanding: Decimal
+
+
+class TopVendor(BaseModel):
+    name: str
+    amount: Decimal
+
+
+class PurchaseSummaryResponse(BaseModel):
+    success: bool
+    data: dict
+    message: str
+
+
+@router.get("/purchase-summary", response_model=PurchaseSummaryResponse)
+async def get_purchase_summary(
+    start_date: datetime,
+    end_date: datetime,
+    group_by: str = "monthly",
+    current_user: User = Depends(get_current_user)
+):
+    """Get purchase summary report"""
+    supabase = get_supabase_client()
+
+    if not current_user.company_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
+
+    bills_response = supabase.table("bills").select("*").eq("company_id", str(current_user.company_id)).eq("is_deleted", False).gte("bill_date", start_date.isoformat()).lte("bill_date", end_date.isoformat()).execute()
+
+    grouped_data = {}
+    for bill in bills_response.data or []:
+        bill_date = datetime.fromisoformat(bill["bill_date"])
+        if group_by == "daily":
+            period = bill_date.strftime("%Y-%m-%d")
+        elif group_by == "weekly":
+            period = f"Week {bill_date.isocalendar()[1]}"
+        else:
+            period = bill_date.strftime("%B %Y")
+
+        if period not in grouped_data:
+            grouped_data[period] = {
+                "bills_count": 0,
+                "subtotal": 0,
+                "tax": 0,
+                "total": 0,
+                "paid": 0,
+                "outstanding": 0,
+            }
+
+        grouped_data[period]["bills_count"] += 1
+        grouped_data[period]["total"] += float(bill.get("total_amount", 0))
+        grouped_data[period]["paid"] += float(bill.get("paid_amount", 0))
+        grouped_data[period]["outstanding"] += float(bill.get("balance_due", 0))
+
+    data = [
+        PurchaseSummaryItem(
+            period=period,
+            bills_count=item["bills_count"],
+            subtotal=Decimal(str(item["total"] * 0.82)),
+            tax=Decimal(str(item["total"] * 0.18)),
+            total=Decimal(str(item["total"])),
+            paid=Decimal(str(item["paid"])),
+            outstanding=Decimal(str(item["outstanding"])),
+        )
+        for period, item in grouped_data.items()
+    ]
+
+    vendor_totals = {}
+    for bill in bills_response.data or []:
+        vend_id = bill.get("vendor_id")
+        if vend_id:
+            if vend_id not in vendor_totals:
+                vendor_totals[vend_id] = 0
+            vendor_totals[vend_id] += float(bill.get("total_amount", 0))
+
+    top_vendors = sorted(vendor_totals.items(), key=lambda x: x[1], reverse=True)[:5]
+
+    top_vendors_data = []
+    for vend_id, amount in top_vendors:
+        vend_response = supabase.table("vendors").select("name").eq("id", vend_id).execute()
+        if vend_response.data:
+            top_vendors_data.append({"name": vend_response.data[0]["name"], "amount": amount})
+
+    total_bills = len(bills_response.data or [])
+    total_purchases = sum(bill.get("total_amount", 0) for bill in bills_response.data or [])
+    total_paid = sum(bill.get("paid_amount", 0) for bill in bills_response.data or [])
+    total_outstanding = sum(bill.get("balance_due", 0) for bill in bills_response.data or [])
+
+    return PurchaseSummaryResponse(
+        success=True,
+        data={
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "group_by": group_by,
+            "data": [item.model_dump() for item in data],
+            "top_vendors": top_vendors_data,
+            "total_bills": total_bills,
+            "total_purchases": total_purchases,
+            "total_paid": total_paid,
+            "total_outstanding": total_outstanding,
+        },
+        message="Purchase Summary generated successfully"
+    )
+
+
+# ==================== STOCK SUMMARY ENDPOINT ====================
+
+class StockSummaryItem(BaseModel):
+    product_code: str
+    product_name: str
+    category: str
+    quantity_on_hand: Decimal
+    unit_cost: Decimal
+    total_value: Decimal
+    quantity_in: Decimal
+    quantity_out: Decimal
+    reorder_level: Decimal
+
+
+class StockSummaryResponse(BaseModel):
+    success: bool
+    data: dict
+    message: str
+
+
+@router.get("/stock-summary", response_model=StockSummaryResponse)
+async def get_stock_summary(
+    category: Optional[str] = None,
+    low_stock_only: bool = False,
+    current_user: User = Depends(get_current_user)
+):
+    """Get stock summary report"""
+    supabase = get_supabase_client()
+
+    if not current_user.company_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
+
+    query = supabase.table("products").select("*").eq("company_id", str(current_user.company_id)).eq("is_deleted", False)
+
+    if category:
+        query = query.eq("category", category)
+
+    products_response = query.execute()
+
+    items = []
+    total_value = Decimal("0")
+    total_items = 0
+    low_stock_count = 0
+
+    for prod in products_response.data or []:
+        qty = Decimal(str(prod.get("quantity", 0)))
+        unit_cost = Decimal(str(prod.get("cost_price", 0) or prod.get("unit_price", 0)))
+        item_value = qty * unit_cost
+        reorder = Decimal(str(prod.get("reorder_level", 0)))
+
+        if low_stock_only and qty > reorder:
+            continue
+
+        total_value += item_value
+        total_items += 1
+        if qty <= reorder:
+            low_stock_count += 1
+
+        # Get stock movements
+        qty_in_response = supabase.table("stock_movements").select("quantity").eq("company_id", str(current_user.company_id)).eq("product_id", prod["id"]).eq("movement_type", "in").execute()
+        qty_out_response = supabase.table("stock_movements").select("quantity").eq("company_id", str(current_user.company_id)).eq("product_id", prod["id"]).eq("movement_type", "out").execute()
+
+        qty_in = sum(Decimal(str(m.get("quantity", 0))) for m in qty_in_response.data or [])
+        qty_out = sum(Decimal(str(m.get("quantity", 0))) for m in qty_out_response.data or [])
+
+        items.append({
+            "product_code": prod.get("sku", prod.get("code", "")),
+            "product_name": prod["name"],
+            "category": prod.get("category", "General"),
+            "quantity_on_hand": float(qty),
+            "unit_cost": float(unit_cost),
+            "total_value": float(item_value),
+            "quantity_in": float(qty_in),
+            "quantity_out": float(qty_out),
+            "reorder_level": float(reorder),
+        })
+
+    return StockSummaryResponse(
+        success=True,
+        data={
+            "items": items,
+            "summary": {
+                "total_items": total_items,
+                "total_value": float(total_value),
+                "low_stock_count": low_stock_count,
+            },
+        },
+        message="Stock Summary generated successfully"
+    )
+
+
+# ==================== SALES TAX REPORT ENDPOINT ====================
+
+class SalesTaxReportResponse(BaseModel):
+    success: bool
+    data: dict
+    message: str
+
+
+@router.get("/sales-tax-report", response_model=SalesTaxReportResponse)
+async def get_sales_tax_report(
+    period_month: int,
+    period_year: int,
+    current_user: User = Depends(get_current_user)
+):
+    """Get Sales Tax Report (SRB/FBR compliant)"""
+    supabase = get_supabase_client()
+
+    if not current_user.company_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
+
+    company_id = str(current_user.company_id)
+
+    # Get sales invoices with tax for the period
+    month_start = datetime(period_year, period_month, 1)
+    if period_month == 12:
+        month_end = datetime(period_year + 1, 1, 1)
+    else:
+        month_end = datetime(period_year, period_month + 1, 1)
+
+    invoices_response = supabase.table("invoices").select("*").eq("company_id", company_id).eq("is_deleted", False).gte("invoice_date", month_start.isoformat()).lt("invoice_date", month_end.isoformat()).execute()
+
+    total_sales = Decimal("0")
+    total_output_tax = Decimal("0")
+    taxable_sales = Decimal("0")
+    exempt_sales = Decimal("0")
+    zero_rated = Decimal("0")
+
+    sales_by_tax_rate = {}
+
+    for inv in invoices_response.data or []:
+        total_amt = Decimal(str(inv.get("total_amount", 0)))
+        tax_amt = Decimal(str(inv.get("tax_amount", 0)))
+        sub_total = total_amt - tax_amt
+
+        total_sales += total_amt
+        total_output_tax += tax_amt
+        taxable_sales += sub_total
+
+        rate_key = str(inv.get("tax_rate", 17))
+        if rate_key not in sales_by_tax_rate:
+            sales_by_tax_rate[rate_key] = {"taxable_amount": 0, "tax_amount": 0, "count": 0}
+        sales_by_tax_rate[rate_key]["taxable_amount"] += float(sub_total)
+        sales_by_tax_rate[rate_key]["tax_amount"] += float(tax_amt)
+        sales_by_tax_rate[rate_key]["count"] += 1
+
+    # Get purchase bills with input tax
+    bills_response = supabase.table("bills").select("*").eq("company_id", company_id).eq("is_deleted", False).gte("bill_date", month_start.isoformat()).lt("bill_date", month_end.isoformat()).execute()
+
+    total_purchases = Decimal("0")
+    total_input_tax = Decimal("0")
+
+    for bill in bills_response.data or []:
+        total_amt = Decimal(str(bill.get("total_amount", 0)))
+        tax_amt = Decimal(str(bill.get("tax_amount", 0)))
+
+        total_purchases += total_amt
+        total_input_tax += tax_amt
+
+    net_tax_payable = total_output_tax - total_input_tax
+
+    return SalesTaxReportResponse(
+        success=True,
+        data={
+            "period": f"{period_month:02d}/{period_year}",
+            "output_tax": {
+                "total_sales": float(total_sales),
+                "taxable_sales": float(taxable_sales),
+                "exempt_sales": float(exempt_sales),
+                "zero_rated": float(zero_rated),
+                "total_output_tax": float(total_output_tax),
+                "sales_by_rate": sales_by_tax_rate,
+            },
+            "input_tax": {
+                "total_purchases": float(total_purchases),
+                "total_input_tax": float(total_input_tax),
+            },
+            "net_tax_payable": float(net_tax_payable if net_tax_payable > 0 else 0),
+            "input_tax_credit": float(total_input_tax),
+        },
+        message="Sales Tax Report generated successfully"
+    )
+
+
+# ==================== WHT REPORT ENDPOINT ====================
+
+class WHTReportResponse(BaseModel):
+    success: bool
+    data: dict
+    message: str
+
+
+@router.get("/wht-report", response_model=WHTReportResponse)
+async def get_wht_report(
+    period_month: int,
+    period_year: int,
+    current_user: User = Depends(get_current_user)
+):
+    """Get Withholding Tax (WHT) Report"""
+    supabase = get_supabase_client()
+
+    if not current_user.company_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
+
+    company_id = str(current_user.company_id)
+    month_start = datetime(period_year, period_month, 1)
+    if period_month == 12:
+        month_end = datetime(period_year + 1, 1, 1)
+    else:
+        month_end = datetime(period_year, period_month + 1, 1)
+
+    wht_response = supabase.table("wht_transactions").select("*").eq("company_id", company_id).gte("transaction_date", month_start.isoformat()).lt("transaction_date", month_end.isoformat()).execute()
+
+    category_summary = {}
+    total_wht = Decimal("0")
+    total_amount = Decimal("0")
+
+    for txn in wht_response.data or []:
+        cat = txn.get("wht_category", "Unknown")
+        amount = Decimal(str(txn.get("amount", 0)))
+        wht_amt = Decimal(str(txn.get("wht_amount", 0)))
+        rate = Decimal(str(txn.get("wht_rate", 0)))
+
+        if cat not in category_summary:
+            category_summary[cat] = {"total_amount": 0, "total_wht": 0, "count": 0, "rate": float(rate)}
+        category_summary[cat]["total_amount"] += float(amount)
+        category_summary[cat]["total_wht"] += float(wht_amt)
+        category_summary[cat]["count"] += 1
+
+        total_wht += wht_amt
+        total_amount += amount
+
+    return WHTReportResponse(
+        success=True,
+        data={
+            "period": f"{period_month:02d}/{period_year}",
+            "categories": category_summary,
+            "total_amount": float(total_amount),
+            "total_wht_deducted": float(total_wht),
+            "transaction_count": len(wht_response.data or []),
+        },
+        message="WHT Report generated successfully"
+    )
+
+
+# ==================== BRANCH-WISE REPORTS ENDPOINT ====================
+
+class BranchWisePLItem(BaseModel):
+    branch_id: int
+    branch_name: str
+    branch_code: str
+    revenue: Decimal
+    expenses: Decimal
+    net_profit: Decimal
+    invoice_count: int
+    bill_count: int
+
+
+class BranchWiseReportResponse(BaseModel):
+    success: bool
+    data: dict
+    message: str
+
+
+@router.get("/branch-wise-pl", response_model=BranchWiseReportResponse)
+async def get_branch_wise_pl(
+    start_date: datetime,
+    end_date: datetime,
+    current_user: User = Depends(get_current_user)
+):
+    """Get branch-wise Profit & Loss report"""
+    supabase = get_supabase_client()
+
+    if not current_user.company_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
+
+    company_id = str(current_user.company_id)
+
+    branches_response = supabase.table("branches").select("*").eq("company_id", company_id).eq("is_active", True).execute()
+
+    branches = branches_response.data or []
+    # If no branches, create a default entry
+    if not branches:
+        branches = [{"id": 0, "name": "Main Branch", "code": "MAIN"}]
+
+    branch_reports = []
+    grand_revenue = Decimal("0")
+    grand_expenses = Decimal("0")
+
+    for branch in branches:
+        branch_id = branch.get("id")
+
+        # Get invoices for this branch
+        inv_query = supabase.table("invoices").select("*").eq("company_id", company_id).eq("is_deleted", False).gte("invoice_date", start_date.isoformat()).lte("invoice_date", end_date.isoformat())
+        if branch_id and branch_id != 0:
+            inv_query = inv_query.eq("branch_id", branch_id)
+
+        invoices_response = inv_query.execute()
+        branch_revenue = sum(Decimal(str(inv.get("total_amount", 0))) for inv in invoices_response.data or [])
+
+        # Get bills for this branch
+        bill_query = supabase.table("bills").select("*").eq("company_id", company_id).eq("is_deleted", False).gte("bill_date", start_date.isoformat()).lte("bill_date", end_date.isoformat())
+        if branch_id and branch_id != 0:
+            bill_query = bill_query.eq("branch_id", branch_id)
+
+        bills_response = bill_query.execute()
+        branch_expenses = sum(Decimal(str(bill.get("total_amount", 0))) for bill in bills_response.data or [])
+
+        grand_revenue += branch_revenue
+        grand_expenses += branch_expenses
+
+        branch_reports.append({
+            "branch_id": branch_id,
+            "branch_name": branch.get("name", "Unknown"),
+            "branch_code": branch.get("code", "UNK"),
+            "revenue": float(branch_revenue),
+            "expenses": float(branch_expenses),
+            "net_profit": float(branch_revenue - branch_expenses),
+            "invoice_count": len(invoices_response.data or []),
+            "bill_count": len(bills_response.data or []),
+        })
+
+    return BranchWiseReportResponse(
+        success=True,
+        data={
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "branches": branch_reports,
+            "totals": {
+                "total_revenue": float(grand_revenue),
+                "total_expenses": float(grand_expenses),
+                "total_net_profit": float(grand_revenue - grand_expenses),
+            },
+        },
+        message="Branch-wise P&L report generated successfully"
+    )
+
+
+# ==================== CUSTOMER/SUPPLIER LEDGER (generic) ====================
+
+class SupplierLedgerResponse(BaseModel):
+    success: bool
+    data: dict
+    opening_balance: Decimal
+    closing_balance: Decimal
+    message: str
+
+
+@router.get("/supplier-ledger/{supplier_id}", response_model=SupplierLedgerResponse)
+async def get_supplier_ledger(
+    supplier_id: UUID,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get supplier/vendor ledger with running balance"""
+    supabase = get_supabase_client()
+
+    if not current_user.company_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
+
+    supplier_response = supabase.table("vendors").select("*").eq("id", str(supplier_id)).eq("company_id", str(current_user.company_id)).eq("is_deleted", False).execute()
+    if not supplier_response.data or len(supplier_response.data) == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
+
+    supplier = supplier_response.data[0]
+    opening_balance = supplier.get("balance_due", 0)
+
+    query = supabase.table("bills").select("*").eq("vendor_id", str(supplier_id)).eq("company_id", str(current_user.company_id)).eq("is_deleted", False)
+    if start_date:
+        query = query.gte("bill_date", start_date.isoformat())
+    if end_date:
+        query = query.lte("bill_date", end_date.isoformat())
+
+    bills_response = query.order("bill_date").execute()
+
+    entries = []
+    running_balance = opening_balance
+
+    for bill in bills_response.data or []:
+        entries.append({
+            "id": bill["id"],
+            "date": bill["bill_date"],
+            "description": f"Bill {bill['bill_number']}",
+            "reference": bill["bill_number"],
+            "debit": float(bill.get("total_amount", 0)),
+            "credit": 0,
+            "balance": running_balance + float(bill.get("total_amount", 0)),
+        })
+        running_balance += float(bill.get("total_amount", 0))
+
+        paid_amount = float(bill.get("paid_amount", 0))
+        if paid_amount > 0:
+            entries.append({
+                "id": f"{bill['id']}-payment",
+                "date": bill.get("payment_date", bill["bill_date"]),
+                "description": "Payment made",
+                "reference": f"Payment for {bill['bill_number']}",
+                "debit": 0,
+                "credit": paid_amount,
+                "balance": running_balance - paid_amount,
+            })
+            running_balance -= paid_amount
+
+    closing_balance = running_balance
+
+    return SupplierLedgerResponse(
+        success=True,
+        data={
+            "supplier": {
+                "id": supplier["id"],
+                "name": supplier["name"],
+            },
+            "opening_balance": opening_balance,
+            "entries": entries,
+            "closing_balance": closing_balance,
+        },
+        message="Supplier Ledger generated successfully"
     )

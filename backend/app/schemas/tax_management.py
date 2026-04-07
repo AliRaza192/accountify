@@ -4,9 +4,9 @@ For API request/response validation
 """
 
 from pydantic import BaseModel, Field, ConfigDict
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from uuid import UUID
 
 from app.schemas.base import AuditableSchema, CompanyBaseSchema
@@ -17,7 +17,7 @@ from app.schemas.base import AuditableSchema, CompanyBaseSchema
 class TaxRateBase(CompanyBaseSchema):
     """Base schema for tax rate"""
     tax_name: str = Field(..., min_length=1, max_length=100)
-    rate_percent: Decimal = Field(..., ge=0, le=100)
+    rate_percent: Decimal = Field(..., ge=0)
     tax_type: str = Field(..., pattern="^(sales_tax|input_tax|wht|federal_excise)$")
     effective_date: date
     end_date: Optional[date] = None
@@ -32,7 +32,7 @@ class TaxRateCreate(TaxRateBase):
 class TaxRateUpdate(BaseModel):
     """Schema for updating tax rate"""
     tax_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    rate_percent: Optional[Decimal] = Field(None, ge=0, le=100)
+    rate_percent: Optional[Decimal] = Field(None, ge=0)
     tax_type: Optional[str] = Field(None, pattern="^(sales_tax|input_tax|wht|federal_excise)$")
     effective_date: Optional[date] = None
     end_date: Optional[date] = None
@@ -42,7 +42,7 @@ class TaxRateUpdate(BaseModel):
 class TaxRateResponse(AuditableSchema):
     """Schema for tax rate response"""
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: UUID
     tax_name: str
     rate_percent: Decimal
@@ -60,7 +60,7 @@ class TaxReturnBase(CompanyBaseSchema):
     return_period_year: int = Field(..., ge=2020)
     output_tax_total: Decimal = Field(default=0, ge=0)
     input_tax_total: Decimal = Field(default=0, ge=0)
-    net_tax_payable: Decimal
+    net_tax_payable: Decimal = Field(default=0)
     filed_date: Optional[date] = None
     challan_number: Optional[str] = Field(None, max_length=50)
     challan_date: Optional[date] = None
@@ -72,17 +72,8 @@ class TaxReturnCreate(TaxReturnBase):
     pass
 
 
-class TaxReturnGenerate(BaseModel):
-    """Schema for auto-generating tax return"""
-    return_period_month: int = Field(..., ge=1, le=12)
-    return_period_year: int = Field(..., ge=2020)
-
-
 class TaxReturnUpdate(BaseModel):
     """Schema for updating tax return"""
-    output_tax_total: Optional[Decimal] = None
-    input_tax_total: Optional[Decimal] = None
-    net_tax_payable: Optional[Decimal] = None
     filed_date: Optional[date] = None
     challan_number: Optional[str] = Field(None, max_length=50)
     challan_date: Optional[date] = None
@@ -92,7 +83,7 @@ class TaxReturnUpdate(BaseModel):
 class TaxReturnResponse(AuditableSchema):
     """Schema for tax return response"""
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: UUID
     return_period_month: int
     return_period_year: int
@@ -105,12 +96,6 @@ class TaxReturnResponse(AuditableSchema):
     status: str
 
 
-class TaxReturnDetail(TaxReturnResponse):
-    """Tax return with breakdown"""
-    output_tax_items: Optional[List[Dict[str, Any]]] = None
-    input_tax_items: Optional[List[Dict[str, Any]]] = None
-
-
 # ============ WHT Transaction Schemas ============
 
 class WHTTransactionBase(CompanyBaseSchema):
@@ -120,10 +105,10 @@ class WHTTransactionBase(CompanyBaseSchema):
     party_type: str = Field(..., pattern="^(customer|vendor)$")
     amount: Decimal = Field(..., ge=0)
     wht_category: str = Field(..., min_length=1, max_length=50)
-    wht_rate: Decimal = Field(..., ge=0, le=100)
+    wht_rate: Decimal = Field(..., ge=0)
     wht_amount: Decimal = Field(..., ge=0)
-    is_filer: bool = True
     challan_id: Optional[UUID] = None
+    is_filer: bool = True
 
 
 class WHTTransactionCreate(WHTTransactionBase):
@@ -131,10 +116,10 @@ class WHTTransactionCreate(WHTTransactionBase):
     pass
 
 
-class WHTTransactionResponse(BaseModel):
+class WHTTransactionResponse(AuditableSchema):
     """Schema for WHT transaction response"""
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: UUID
     transaction_date: date
     party_id: UUID
@@ -143,57 +128,79 @@ class WHTTransactionResponse(BaseModel):
     wht_category: str
     wht_rate: Decimal
     wht_amount: Decimal
-    is_filer: bool
     challan_id: Optional[UUID]
-    created_at: date
+    is_filer: bool
 
 
-class WHTSummary(BaseModel):
-    """WHT summary by category"""
-    category: str
-    total_amount: Decimal
+class WHTChallanRequest(BaseModel):
+    """Request for generating WHT challan"""
+    period_month: int = Field(..., ge=1, le=12)
+    period_year: int = Field(..., ge=2020)
+    wht_categories: Optional[List[str]] = None
+
+
+class WHTChallanResponse(BaseModel):
+    """Response for WHT challan generation"""
+    challan_number: str
+    period_month: int
+    period_year: int
     total_wht: Decimal
-    transaction_count: int
+    categories: List[str]
+    transaction_ids: List[UUID]
+    generated_at: datetime
 
 
-# ============ Tax Report Schemas ============
+# ============ NTN Verification Schemas ============
 
-class TaxSummary(BaseModel):
-    """Tax dashboard summary"""
-    period: str
-    output_tax: Decimal
-    input_tax: Decimal
-    net_payable: Decimal
-    wht_deducted: Decimal
-    returns_filed: int
-    returns_pending: int
+class NTNVerificationRequest(BaseModel):
+    """Request for NTN/STRN verification"""
+    ntn: str = Field(..., pattern=r"^\d{7}-\d{1}$")
+    strn: Optional[str] = Field(None, pattern=r"^\d{13}$")
+    verified_by_user: bool = True
 
 
-class OutputTaxItem(BaseModel):
-    """Output tax line item"""
+class NTNVerificationResponse(BaseModel):
+    """Response for NTN/STRN verification"""
+    verified: bool
+    ntn: str
+    strn: Optional[str]
+    verification_timestamp: datetime
+
+
+# ============ Report Schemas ============
+
+class TaxableInvoiceItem(BaseModel):
+    """Item in taxable sales/purchases list"""
     invoice_number: str
-    customer_name: str
-    customer_ntn: Optional[str]
+    party_name: str
+    party_ntn: Optional[str]
     taxable_amount: Decimal
     tax_amount: Decimal
-    date: date
+    transaction_date: date
 
 
-class InputTaxItem(BaseModel):
-    """Input tax line item"""
-    bill_number: str
-    vendor_name: str
-    vendor_ntn: Optional[str]
-    taxable_amount: Decimal
-    tax_amount: Decimal
-    date: date
+class SalesTaxReturnReport(BaseModel):
+    """Sales Tax Return report in SRB/FBR format"""
+    return_period: str
+    output_tax_total: Decimal
+    input_tax_total: Decimal
+    net_tax_payable: Decimal
+    taxable_sales: List[TaxableInvoiceItem]
+    taxable_purchases: List[TaxableInvoiceItem]
 
 
-class TaxReconciliationReport(BaseModel):
-    """Tax reconciliation report"""
+class InputOutputTaxReport(BaseModel):
+    """Input/Output Tax Reconciliation Report"""
     period: str
-    opening_balance: Decimal
-    output_tax: Decimal
-    input_tax: Decimal
-    wht_paid: Decimal
-    closing_balance: Decimal
+    total_output_tax: Decimal
+    total_input_tax: Decimal
+    net_tax_payable: Decimal
+    output_tax_details: List[TaxableInvoiceItem]
+    input_tax_details: List[TaxableInvoiceItem]
+
+
+class WHTSummaryReport(BaseModel):
+    """WHT Summary Report by category"""
+    period: str
+    categories: List[dict]  # {category: str, total_amount: Decimal, total_wht: Decimal, count: int}
+    grand_total_wht: Decimal
