@@ -113,11 +113,11 @@ Accountify Team
             
             # Send email
             server = smtplib.SMTP(
-                settings.SMTP_HOST, 
+                settings.SMTP_HOST,
                 settings.SMTP_PORT
             )
             server.starttls()
-            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
             server.send_message(msg)
             server.quit()
             

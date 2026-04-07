@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+    <!-- Wrapper -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3f4f6;">
+        <tr>
+            <td align="center" style="padding: 24px 16px;">
+                <!-- Email Container -->
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); padding: 32px; text-align: center;">
+                            <!-- Company Logo Placeholder -->
+                            <div style="width: 64px; height: 64px; background-color: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 12px; line-height: 64px; text-align: center;">
+                                <span style="color: #ffffff; font-size: 28px; font-weight: bold;">{{ company_name[:1] | default('A') }}</span>
+                            </div>
+                            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">{{ company_name | default('Accountify') }}</h1>
+                            {% if company_address %}
+                            <p style="color: #bfdbfe; margin: 8px 0 0; font-size: 13px;">{{ company_address }}</p>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    <!-- Greeting -->
+                    <tr>
+                        <td style="padding: 32px 32px 16px;">
+                            <p style="color: #374151; font-size: 16px; margin: 0;">Dear <strong>{{ customer_name }}</strong>,</p>
+                            <p style="color: #6b7280; font-size: 15px; margin: 12px 0 0;">
+                                Please find below the details of your invoice. We appreciate your business and prompt payment.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Invoice Details Card -->
+                    <tr>
+                        <td style="padding: 0 32px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                <tr>
+                                    <td style="padding: 24px;">
+                                        <h2 style="color: #1e3a5f; margin: 0 0 16px; font-size: 18px; border-bottom: 2px solid #2563eb; padding-bottom: 8px;">Invoice Details</h2>
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 40%;">Invoice Number</td>
+                                                <td style="padding: 8px 0; color: #111827; font-weight: 600; font-size: 14px;">{{ invoice_number }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Invoice Date</td>
+                                                <td style="padding: 8px 0; color: #111827; font-size: 14px;">{{ invoice_date }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Due Date</td>
+                                                <td style="padding: 8px 0; color: #dc2626; font-weight: 600; font-size: 14px;">{{ due_date }}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Line Items -->
+                    {% if items %}
+                    <tr>
+                        <td style="padding: 24px 32px 0;">
+                            <h3 style="color: #1e3a5f; margin: 0 0 12px; font-size: 16px;">Items</h3>
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                                <!-- Header -->
+                                <tr style="background-color: #1e3a5f;">
+                                    <th style="padding: 10px 12px; color: #ffffff; font-size: 13px; text-align: left; font-weight: 600;">Description</th>
+                                    <th style="padding: 10px 12px; color: #ffffff; font-size: 13px; text-align: center; font-weight: 600;">Qty</th>
+                                    <th style="padding: 10px 12px; color: #ffffff; font-size: 13px; text-align: right; font-weight: 600;">Rate</th>
+                                    <th style="padding: 10px 12px; color: #ffffff; font-size: 13px; text-align: right; font-weight: 600;">Amount</th>
+                                </tr>
+                                {% for item in items %}
+                                <tr style="background-color: {{ '#f9fafb' if loop.index is even else '#ffffff' }};">
+                                    <td style="padding: 10px 12px; color: #374151; font-size: 13px; border-bottom: 1px solid #e5e7eb;">{{ item.description | default('Item') }}</td>
+                                    <td style="padding: 10px 12px; color: #374151; font-size: 13px; text-align: center; border-bottom: 1px solid #e5e7eb;">{{ item.quantity | default(1) }}</td>
+                                    <td style="padding: 10px 12px; color: #374151; font-size: 13px; text-align: right; border-bottom: 1px solid #e5e7eb;">PKR {{ item.rate | default(0) | round(2) }}</td>
+                                    <td style="padding: 10px 12px; color: #374151; font-size: 13px; text-align: right; border-bottom: 1px solid #e5e7eb;">PKR {{ item.amount | default(0) | round(2) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <!-- Totals -->
+                    <tr>
+                        <td style="padding: 24px 32px 0;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                <tr>
+                                    <td style="padding: 20px 24px;">
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td style="padding: 6px 0; color: #6b7280; font-size: 14px; width: 60%;">Subtotal</td>
+                                                <td style="padding: 6px 0; color: #111827; font-size: 14px; text-align: right;">{{ subtotal }}</td>
+                                            </tr>
+                                            {% if tax_total != 'PKR 0.00' %}
+                                            <tr>
+                                                <td style="padding: 6px 0; color: #6b7280; font-size: 14px;">Tax</td>
+                                                <td style="padding: 6px 0; color: #111827; font-size: 14px; text-align: right;">{{ tax_total }}</td>
+                                            </tr>
+                                            {% endif %}
+                                            {% if discount != 'PKR 0.00' %}
+                                            <tr>
+                                                <td style="padding: 6px 0; color: #6b7280; font-size: 14px;">Discount</td>
+                                                <td style="padding: 6px 0; color: #059669; font-size: 14px; text-align: right;">- {{ discount }}</td>
+                                            </tr>
+                                            {% endif %}
+                                            <tr>
+                                                <td colspan="2" style="border-top: 2px solid #1e3a5f; padding-top: 12px;"></td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; color: #1e3a5f; font-size: 16px; font-weight: 600;">Total</td>
+                                                <td style="padding: 8px 0; color: #1e3a5f; font-size: 16px; font-weight: 600; text-align: right;">{{ total }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0; color: #dc2626; font-size: 16px; font-weight: 600;">Balance Due</td>
+                                                <td style="padding: 8px 0; color: #dc2626; font-size: 18px; font-weight: 700; text-align: right;">{{ balance_due }}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Notes -->
+                    {% if notes %}
+                    <tr>
+                        <td style="padding: 24px 32px 0;">
+                            <div style="border-left: 4px solid #2563eb; padding: 12px 16px; background-color: #eff6ff; border-radius: 0 4px 4px 0;">
+                                <p style="color: #1e40af; margin: 0; font-size: 14px;"><strong>Notes:</strong> {{ notes }}</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <!-- Payment Info -->
+                    <tr>
+                        <td style="padding: 24px 32px 0;">
+                            <div style="background-color: #fefce8; border: 1px solid #facc15; border-radius: 8px; padding: 16px;">
+                                <p style="color: #854d0e; margin: 0 0 8px; font-size: 14px; font-weight: 600;">Payment Instructions</p>
+                                <p style="color: #a16207; margin: 0; font-size: 13px;">
+                                    Please transfer the balance due to our bank account before the due date.
+                                    For payment details, please contact us at {% if company_phone %}{{ company_phone }}{% endif %}.
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- NTN -->
+                    {% if company_ntn %}
+                    <tr>
+                        <td style="padding: 16px 32px 0;">
+                            <p style="color: #6b7280; font-size: 12px; margin: 0;">NTN: {{ company_ntn }}</p>
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 32px 32px 24px; text-align: center; border-top: 1px solid #e5e7eb; margin-top: 24px;">
+                            <p style="color: #6b7280; font-size: 13px; margin: 0 0 8px;">Thank you for your business!</p>
+                            <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+                                &copy; {{ year }} {{ company_name | default('Accountify') }}. All rights reserved.
+                            </p>
+                            <p style="color: #9ca3af; font-size: 11px; margin: 8px 0 0;">This is an automated email. Please do not reply directly.</p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

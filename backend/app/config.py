@@ -13,11 +13,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000"]
     
-    # Email Configuration (for 2FA and approvals)
+    # Email Configuration (for 2FA, approvals, invoices, etc.)
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
-    SMTP_USER: str = ""
+    SMTP_USERNAME: str = ""
     SMTP_PASSWORD: str = ""
+    SMTP_USE_TLS: bool = True
     EMAIL_FROM: str = "Accountify <noreply@accountify.com>"
     
     # 2FA Configuration

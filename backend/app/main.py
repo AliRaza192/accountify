@@ -158,6 +158,13 @@ try:
 except Exception as e:
     logger.warning(f"CRM router failed to load: {e}")
 
+# Email Service
+try:
+    from app.routers import email
+    app.include_router(email.router, prefix="/api/email", tags=["Email Service"])
+except Exception as e:
+    logger.warning(f"Email router failed to load: {e}")
+
 # Phase 2: RBAC & Audit
 try:
     from app.routers import roles
@@ -198,6 +205,13 @@ try:
     app.include_router(manufacturing.router, prefix="/api/manufacturing", tags=["Manufacturing"])
 except Exception as e:
     logger.warning(f"Manufacturing router failed to load: {e}")
+
+# Email Service
+try:
+    from app.routers import email as email_router
+    app.include_router(email_router.router, prefix="/api/email", tags=["Email"])
+except Exception as e:
+    logger.warning(f"Email router failed to load: {e}")
 
 
 @app.get("/")

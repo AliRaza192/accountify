@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from decimal import Decimal
 import logging
 
@@ -58,6 +58,322 @@ class POSSaleResponse(BaseModel):
     invoice_number: str
     total: Decimal
     receipt: ReceiptData
+
+
+# ============ Shift Management ============
+
+class ShiftOpen(BaseModel):
+    opening_cash: Decimal
+    notes: Optional[str] = None
+
+
+class ShiftClose(BaseModel):
+    closing_cash: Decimal
+    notes: Optional[str] = None
+
+
+class ShiftSummary(BaseModel):
+    id: UUID
+    shift_number: str
+    opened_at: datetime
+    closed_at: Optional[datetime]
+    opening_cash: Decimal
+    expected_cash: Decimal
+    actual_cash: Decimal
+    difference: Decimal
+    total_sales: int
+    total_amount: Decimal
+    status: str  # open, closed
+    cashier_id: UUID
+    cashier_name: str
+
+
+@router.post("/shift/open", response_model=ShiftSummary)
+async def open_pos_shift(
+    shift_data: ShiftOpen,
+    current_user: User = Depends(get_current_user)
+):
+    """Open a new POS shift with cash count"""
+    if not current_user.company_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
+
+    # Check if there's already an open shift
+    open_shift = supabase.table("pos_shifts").select("*").eq("company_id", str(current_user.company_id)).eq("cashier_id", str(current_user.id)).eq("status", "open").execute()
+    if open_shift.data and len(open_shift.data) > 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You already have an open shift. Close it first.")
+
+    # Generate shift number
+    today = datetime.now(timezone.utc).strftime("%Y%m%d")
+    count_response = supabase.table("pos_shifts").select("id", count="exact").eq("company_id", str(current_user.company_id)).execute()
+    shift_num = f"SHIFT-{today}-{(count_response.count or 0) + 1:03d}"
+
+    shift_dict = {
+        "shift_number": shift_num,
+        "company_id": str(current_user.company_id),
+        "cashier_id": str(current_user.id),
+        "cashier_name": current_user.full_name,
+        "opening_cash": float(shift_data.opening_cash),
+        "expected_cash": float(shift_data.opening_cash),
+        "actual_cash": float(shift_data.opening_cash),
+        "difference": 0,
+        "total_sales": 0,
+        "total_amount": 0,
+        "status": "open",
+        "opened_at": datetime.now(timezone.utc).isoformat(),
+        "notes": shift_data.notes,
+    }
+
+    response = supabase.table("pos_shifts").insert(shift_dict).execute()
+    if not response.data or len(response.data) == 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to open shift")
+
+    return ShiftSummary(**response.data[0])
+
+
+@router.post("/shift/{shift_id}/close", response_model=ShiftSummary)
+async def close_pos_shift(
+    shift_id: UUID,
+    close_data: ShiftClose,
+    current_user: User = Depends(get_current_user)
+):
+    """Close POS shift with cash count"""
+    if not current_user.company_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
+
+    shift_response = supabase.table("pos_shifts").select("*").eq("id", str(shift_id)).eq("company_id", str(current_user.company_id)).execute()
+    if not shift_response.data or len(shift_response.data) == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shift not found")
+
+    shift = shift_response.data[0]
+    if shift["status"] == "closed":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Shift is already closed")
+
+    difference = close_data.closing_cash - Decimal(str(shift["expected_cash"]))
+
+    update_data = {
+        "actual_cash": float(close_data.closing_cash),
+        "difference": float(difference),
+        "status": "closed",
+        "closed_at": datetime.now(timezone.utc).isoformat(),
+        "notes": close_data.notes,
+    }
+
+    response = supabase.table("pos_shifts").update(update_data).eq("id", str(shift_id)).execute()
+    if not response.data or len(response.data) == 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to close shift")
+
+    return ShiftSummary(**response.data[0])
+
+
+@router.get("/shifts", response_model=List[ShiftSummary])
+async def list_pos_shifts(
+    from_date: Optional[date] = None,
+    to_date: Optional[date] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """List POS shifts with optional date filter"""
+    if not current_user.company_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
+
+    query = supabase.table("pos_shifts").select("*").eq("company_id", str(current_user.company_id))
+    
+    if from_date:
+        query = query.gte("opened_at", from_date.isoformat())
+    if to_date:
+        query = query.lte("opened_at", to_date.isoformat())
+
+    response = query.order("opened_at", desc=True).execute()
+    return [ShiftSummary(**shift) for shift in response.data or []]
+
+
+# ============ Hold/Resume Transactions ============
+
+class HeldTransaction(BaseModel):
+    id: UUID
+    hold_number: str
+    items: List[dict]
+    customer_id: Optional[UUID] = None
+    customer_name: Optional[str] = None
+    notes: Optional[str] = None
+    held_at: datetime
+    held_by: UUID
+
+
+@router.post("/hold", response_model=dict)
+async def hold_pos_transaction(
+    transaction_data: dict,
+    current_user: User = Depends(get_current_user)
+):
+    """Hold a POS transaction for later completion"""
+    if not current_user.company_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
+
+    # Generate hold number
+    today = datetime.now(timezone.utc).strftime("%Y%m%d")
+    count_response = supabase.table("pos_held_transactions").select("id", count="exact").eq("company_id", str(current_user.company_id)).eq("hold_date", today).execute()
+    hold_num = f"HOLD-{today}-{(count_response.count or 0) + 1:03d}"
+
+    held_txn = {
+        "hold_number": hold_num,
+        "company_id": str(current_user.company_id),
+        "held_by": str(current_user.id),
+        "items": transaction_data.get("items", []),
+        "customer_id": str(transaction_data.get("customer_id")) if transaction_data.get("customer_id") else None,
+        "customer_name": transaction_data.get("customer_name"),
+        "discount": float(transaction_data.get("discount", 0)),
+        "notes": transaction_data.get("notes"),
+        "hold_date": today,
+        "status": "held",
+    }
+
+    response = supabase.table("pos_held_transactions").insert(held_txn).execute()
+    if not response.data or len(response.data) == 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to hold transaction")
+
+    return {"success": True, "hold_number": hold_num, "id": response.data[0]["id"]}
+
+
+@router.get("/held", response_model=List[dict])
+async def list_held_transactions(
+    current_user: User = Depends(get_current_user)
+):
+    """List all held transactions for today"""
+    if not current_user.company_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
+
+    today = datetime.now(timezone.utc).strftime("%Y%m%d")
+    response = supabase.table("pos_held_transactions").select("*").eq("company_id", str(current_user.company_id)).eq("hold_date", today).eq("status", "held").order("held_at", desc=True).execute()
+    
+    return response.data or []
+
+
+@router.post("/held/{hold_id}/resume", response_model=dict)
+async def resume_held_transaction(
+    hold_id: UUID,
+    current_user: User = Depends(get_current_user)
+):
+    """Resume a held transaction"""
+    if not current_user.company_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
+
+    response = supabase.table("pos_held_transactions").select("*").eq("id", str(hold_id)).eq("company_id", str(current_user.company_id)).execute()
+    if not response.data or len(response.data) == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Held transaction not found")
+
+    held_txn = response.data[0]
+    if held_txn["status"] != "held":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Transaction is not on hold")
+
+    # Mark as resumed (will be deleted when sale is completed)
+    supabase.table("pos_held_transactions").update({
+        "status": "resumed",
+        "resumed_at": datetime.now(timezone.utc).isoformat(),
+    }).eq("id", str(hold_id)).execute()
+
+    return {
+        "success": True,
+        "items": held_txn["items"],
+        "customer_id": held_txn["customer_id"],
+        "customer_name": held_txn["customer_name"],
+        "discount": held_txn["discount"],
+        "notes": held_txn["notes"],
+    }
+
+
+@router.delete("/held/{hold_id}")
+async def delete_held_transaction(
+    hold_id: UUID,
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a held transaction"""
+    if not current_user.company_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
+
+    response = supabase.table("pos_held_transactions").select("*").eq("id", str(hold_id)).eq("company_id", str(current_user.company_id)).execute()
+    if not response.data or len(response.data) == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Held transaction not found")
+
+    supabase.table("pos_held_transactions").delete().eq("id", str(hold_id)).execute()
+    return {"success": True, "message": "Held transaction deleted"}
+
+
+# ============ POS Reports ============
+
+@router.get("/reports/daily-summary")
+async def get_pos_daily_summary(
+    report_date: Optional[date] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get daily POS sales summary"""
+    if not current_user.company_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
+
+    if not report_date:
+        report_date = datetime.now(timezone.utc).date()
+
+    # Get all POS sales for the date
+    invoices = supabase.table("invoices").select("*").eq("company_id", str(current_user.company_id)).eq("is_deleted", False).eq("status", "confirmed").gte("created_at", report_date.isoformat()).execute()
+
+    total_sales = 0
+    total_amount = Decimal("0")
+    payment_summary = {}
+
+    for inv in (invoices.data or []):
+        total_sales += 1
+        total_amount += Decimal(str(inv["total"]))
+        method = inv.get("payment_method", "cash")
+        if method not in payment_summary:
+            payment_summary[method] = {"count": 0, "amount": 0}
+        payment_summary[method]["count"] += 1
+        payment_summary[method]["amount"] += float(inv["total"])
+
+    return {
+        "date": report_date.isoformat(),
+        "total_sales": total_sales,
+        "total_amount": float(total_amount),
+        "payment_methods": payment_summary,
+    }
+
+
+@router.get("/reports/cashier-summary")
+async def get_pos_cashier_summary(
+    report_date: Optional[date] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get cashier-wise POS sales summary"""
+    if not current_user.company_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User not associated with any company")
+
+    if not report_date:
+        report_date = datetime.now(timezone.utc).date()
+
+    # Get shifts for the date
+    shifts = supabase.table("pos_shifts").select("*").eq("company_id", str(current_user.company_id)).gte("opened_at", report_date.isoformat()).execute()
+
+    cashier_summary = {}
+    for shift in (shifts.data or []):
+        cashier = shift["cashier_name"]
+        if cashier not in cashier_summary:
+            cashier_summary[cashier] = {
+                "cashier_id": shift["cashier_id"],
+                "shifts": 0,
+                "total_sales": 0,
+                "opening_cash": 0,
+                "expected_cash": 0,
+                "actual_cash": 0,
+                "difference": 0,
+            }
+        cashier_summary[cashier]["shifts"] += 1
+        cashier_summary[cashier]["total_sales"] += shift["total_sales"]
+        cashier_summary[cashier]["opening_cash"] += shift["opening_cash"]
+        cashier_summary[cashier]["expected_cash"] += shift["expected_cash"]
+        cashier_summary[cashier]["actual_cash"] += shift["actual_cash"]
+        cashier_summary[cashier]["difference"] += shift["difference"]
+
+    return {
+        "date": report_date.isoformat(),
+        "cashiers": list(cashier_summary.values()),
+    }
 
 
 @router.post("/sale", response_model=POSSaleResponse)
