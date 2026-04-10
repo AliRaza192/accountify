@@ -214,6 +214,14 @@ except Exception as e:
     logger.warning(f"Email router failed to load: {e}")
 
 
+# Phase 3: BI & Analytics
+try:
+    from app.routers import bi_dashboard
+    app.include_router(bi_dashboard.router, prefix="/api/bi", tags=["BI & Analytics"])
+except Exception as e:
+    logger.warning(f"BI Dashboard router failed to load: {e}")
+
+
 @app.get("/")
 async def root():
     return {"status": "AI Accounts API running", "version": "1.0.0"}
