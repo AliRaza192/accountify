@@ -275,7 +275,7 @@ async def get_reconciliation_session(
 ):
     """Get reconciliation session with transactions"""
     try:
-        from sqlalchemy import select
+        from sqlalchemy import select, and_
         query = select(ReconciliationSession).where(
             and_(
                 ReconciliationSession.id == session_id,
@@ -289,6 +289,7 @@ async def get_reconciliation_session(
         # In production, would fetch actual bank and system transactions
         return ReconciliationSessionDetail(
             id=session.id,
+            company_id=session.company_id,
             bank_account_id=session.bank_account_id,
             period_month=session.period_month,
             period_year=session.period_year,
@@ -299,6 +300,8 @@ async def get_reconciliation_session(
             status=session.status,
             completed_at=session.completed_at,
             completed_by=session.completed_by,
+            created_by=session.created_by,
+            updated_by=session.updated_by,
             bank_transactions=[],
             system_transactions=[],
             matched_transactions=session.reconciled_transactions

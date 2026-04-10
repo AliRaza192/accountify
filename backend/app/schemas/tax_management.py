@@ -24,9 +24,14 @@ class TaxRateBase(CompanyBaseSchema):
     is_active: bool = True
 
 
-class TaxRateCreate(TaxRateBase):
+class TaxRateCreate(BaseModel):
     """Schema for creating tax rate"""
-    pass
+    tax_name: str = Field(..., min_length=1, max_length=100)
+    rate_percent: Decimal = Field(..., ge=0)
+    tax_type: str = Field(..., pattern="^(sales_tax|input_tax|wht|federal_excise)$")
+    effective_date: date
+    end_date: Optional[date] = None
+    is_active: bool = True
 
 
 class TaxRateUpdate(BaseModel):
@@ -67,9 +72,17 @@ class TaxReturnBase(CompanyBaseSchema):
     status: str = Field(default="draft", pattern="^(draft|filed|paid)$")
 
 
-class TaxReturnCreate(TaxReturnBase):
+class TaxReturnCreate(BaseModel):
     """Schema for creating tax return"""
-    pass
+    return_period_month: int = Field(..., ge=1, le=12)
+    return_period_year: int = Field(..., ge=2020)
+    output_tax_total: Decimal = Field(default=0, ge=0)
+    input_tax_total: Decimal = Field(default=0, ge=0)
+    net_tax_payable: Decimal = Field(default=0)
+    filed_date: Optional[date] = None
+    challan_number: Optional[str] = Field(None, max_length=50)
+    challan_date: Optional[date] = None
+    status: str = Field(default="draft", pattern="^(draft|filed|paid)$")
 
 
 class TaxReturnUpdate(BaseModel):
@@ -111,9 +124,17 @@ class WHTTransactionBase(CompanyBaseSchema):
     is_filer: bool = True
 
 
-class WHTTransactionCreate(WHTTransactionBase):
+class WHTTransactionCreate(BaseModel):
     """Schema for creating WHT transaction"""
-    pass
+    transaction_date: date
+    party_id: UUID
+    party_type: str = Field(..., pattern="^(customer|vendor)$")
+    amount: Decimal = Field(..., ge=0)
+    wht_category: str = Field(..., min_length=1, max_length=50)
+    wht_rate: Decimal = Field(..., ge=0)
+    wht_amount: Decimal = Field(..., ge=0)
+    challan_id: Optional[UUID] = None
+    is_filer: bool = True
 
 
 class WHTTransactionResponse(AuditableSchema):

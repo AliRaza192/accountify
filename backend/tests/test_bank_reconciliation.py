@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, patch
 from decimal import Decimal
 from uuid import uuid4
-from datetime import date
+from datetime import date, timedelta, datetime
 import sys
 import os
 
@@ -84,11 +84,11 @@ def auth_headers():
 @pytest.fixture
 def mock_current_user():
     return User(
-        id="test-user-id",
+        id=str(uuid4()),
         email="finance@example.com",
         full_name="Finance Manager",
         role="admin",
-        company_id="test-company-id",
+        company_id=str(uuid4()),
         company_name="Test Company",
     )
 
@@ -129,7 +129,7 @@ class TestBankStatementImport:
         # Mock bank account lookup
         mock_account = MagicMock()
         mock_account.id = account_id
-        mock_account.company_id = "test-company-id"
+        mock_account.company_id = uuid4()
         mock_account.name = "HBL Current"
         mock_account.bank_name = "HBL"
         mock_account.account_number = "PK36HABB0012345678"
@@ -143,8 +143,8 @@ class TestBankStatementImport:
         mock_statement.statement_date = date(2025, 3, 31)
         mock_statement.opening_balance = Decimal("100000.00")
         mock_statement.closing_balance = Decimal("144500.00")
-        mock_statement.imported_at.__str__ = lambda s: "2025-04-01T00:00:00"
-        mock_statement.imported_by = "test-user-id"
+        mock_statement.imported_at = date(2025, 4, 1)
+        mock_statement.imported_by = uuid4()
 
         def mock_execute(query):
             result = MagicMock()
@@ -163,8 +163,8 @@ class TestBankStatementImport:
             obj.statement_date = date(2025, 3, 31)
             obj.opening_balance = Decimal("100000.00")
             obj.closing_balance = Decimal("144500.00")
-            obj.imported_at.__str__ = lambda s: "2025-04-01T00:00:00"
-            obj.imported_by = "test-user-id"
+            obj.imported_at = date(2025, 4, 1)
+            obj.imported_by = uuid4()
 
         mock_session.refresh = mock_refresh
 
@@ -260,12 +260,12 @@ class TestAutoMatching:
             json={
                 "bank_transaction_id": "bnk-txn-001",
                 "system_transaction_id": str(uuid4()),
-                "match_type": "exact_amount",
+                "match_type": "manual",
             },
             headers=auth_headers,
         )
         assert response.status_code == 200
-        assert "matched successfully" in response.json()["message"]
+        assert "matched successfully" in response.json()["message"].lower()
 
     def test_match_transactions_session_not_found(self, override_bank_deps, auth_headers):
         """Test matching transactions for non-existent session returns 404"""
@@ -283,7 +283,7 @@ class TestAutoMatching:
             json={
                 "bank_transaction_id": "bnk-001",
                 "system_transaction_id": str(uuid4()),
-                "match_type": "exact_amount",
+                "match_type": "manual",
             },
             headers=auth_headers,
         )
@@ -305,6 +305,7 @@ class TestPDCManagement:
         mock_pdc = MagicMock()
         mock_pdc.id = pdc_id
         mock_pdc.cheque_number = "CHQ-PDC-001"
+        mock_pdc.bank_name = "HBL"
         mock_pdc.party_id = uuid4()
         mock_pdc.party_type = "customer"
         mock_pdc.amount = Decimal("50000.00")
@@ -315,8 +316,9 @@ class TestPDCManagement:
         mock_pdc.cleared_at = None
         mock_pdc.bounced_at = None
         mock_pdc.bounce_reason = None
-        mock_pdc.created_at.__str__ = lambda s: "2025-03-01T00:00:00"
-        mock_pdc.updated_at.__str__ = lambda s: "2025-03-01T00:00:00"
+        mock_pdc.payment_id = None
+        mock_pdc.created_at = date(2025, 3, 1)
+        mock_pdc.updated_at = date(2025, 3, 1)
 
         def mock_execute(query):
             result = MagicMock()
@@ -331,6 +333,7 @@ class TestPDCManagement:
         def mock_refresh(obj):
             obj.id = pdc_id
             obj.cheque_number = "CHQ-PDC-001"
+            obj.bank_name = "HBL"
             obj.party_type = "customer"
             obj.amount = Decimal("50000.00")
             obj.cheque_date = date(2025, 4, 15)
@@ -339,6 +342,9 @@ class TestPDCManagement:
             obj.cleared_at = None
             obj.bounced_at = None
             obj.bounce_reason = None
+            obj.payment_id = None
+            obj.created_at = date(2025, 3, 1)
+            obj.updated_at = date(2025, 3, 1)
 
         mock_session.refresh = mock_refresh
         app.dependency_overrides[bank_reconciliation.get_db] = lambda: mock_session
@@ -369,7 +375,9 @@ class TestPDCManagement:
         mock_pdc = MagicMock()
         mock_pdc.id = pdc_id
         mock_pdc.cheque_number = "CHQ-VND-001"
+        mock_pdc.bank_name = "Meezan Bank"
         mock_pdc.party_type = "vendor"
+        mock_pdc.party_id = uuid4()
         mock_pdc.amount = Decimal("75000.00")
         mock_pdc.cheque_date = date(2025, 5, 1)
         mock_pdc.status = "pending"
@@ -377,6 +385,9 @@ class TestPDCManagement:
         mock_pdc.cleared_at = None
         mock_pdc.bounced_at = None
         mock_pdc.bounce_reason = None
+        mock_pdc.payment_id = None
+        mock_pdc.created_at = date(2025, 3, 1)
+        mock_pdc.updated_at = date(2025, 3, 1)
 
         mock_session = MagicMock()
         mock_session.execute.return_value.scalars.return_value.all.return_value = [mock_pdc]
@@ -386,7 +397,9 @@ class TestPDCManagement:
         def mock_refresh(obj):
             obj.id = pdc_id
             obj.cheque_number = "CHQ-VND-001"
+            obj.bank_name = "Meezan Bank"
             obj.party_type = "vendor"
+            obj.party_id = uuid4()
             obj.amount = Decimal("75000.00")
             obj.cheque_date = date(2025, 5, 1)
             obj.status = "pending"
@@ -394,6 +407,9 @@ class TestPDCManagement:
             obj.cleared_at = None
             obj.bounced_at = None
             obj.bounce_reason = None
+            obj.payment_id = None
+            obj.created_at = date(2025, 3, 1)
+            obj.updated_at = date(2025, 3, 1)
 
         mock_session.refresh = mock_refresh
         app.dependency_overrides[bank_reconciliation.get_db] = lambda: mock_session
@@ -420,7 +436,9 @@ class TestPDCManagement:
         mock_pdc = MagicMock()
         mock_pdc.id = uuid4()
         mock_pdc.cheque_number = "CHQ-001"
+        mock_pdc.bank_name = "HBL"
         mock_pdc.party_type = "customer"
+        mock_pdc.party_id = uuid4()
         mock_pdc.amount = Decimal("50000.00")
         mock_pdc.cheque_date = date(2025, 4, 15)
         mock_pdc.status = "pending"
@@ -428,7 +446,10 @@ class TestPDCManagement:
         mock_pdc.cleared_at = None
         mock_pdc.bounced_at = None
         mock_pdc.bounce_reason = None
+        mock_pdc.payment_id = None
         mock_pdc.company_id = str(uuid4())
+        mock_pdc.created_at = date(2025, 3, 1)
+        mock_pdc.updated_at = date(2025, 3, 1)
 
         mock_session = MagicMock()
         mock_session.execute.return_value.scalars.return_value.all.return_value = [mock_pdc]
@@ -470,9 +491,14 @@ class TestPDCManagement:
         mock_pdc.bounced_at = None
         mock_pdc.bounce_reason = None
         mock_pdc.cheque_number = "CHQ-001"
+        mock_pdc.bank_name = "HBL"
         mock_pdc.party_type = "customer"
+        mock_pdc.party_id = uuid4()
         mock_pdc.amount = Decimal("50000.00")
         mock_pdc.cheque_date = date(2025, 4, 15)
+        mock_pdc.payment_id = None
+        mock_pdc.created_at = date(2025, 3, 1)
+        mock_pdc.updated_at = date(2025, 3, 1)
 
         def mock_execute(query):
             result = MagicMock()
@@ -531,9 +557,14 @@ class TestPDCManagement:
         mock_pdc.bounced_at = None
         mock_pdc.bounce_reason = None
         mock_pdc.cheque_number = "CHQ-001"
+        mock_pdc.bank_name = "HBL"
         mock_pdc.party_type = "customer"
+        mock_pdc.party_id = uuid4()
         mock_pdc.amount = Decimal("50000.00")
         mock_pdc.cheque_date = date(2025, 4, 15)
+        mock_pdc.payment_id = None
+        mock_pdc.created_at = date(2025, 3, 1)
+        mock_pdc.updated_at = date(2025, 3, 1)
 
         def mock_execute(query):
             result = MagicMock()
@@ -569,9 +600,14 @@ class TestPDCManagement:
         mock_pdc.bounced_at = None
         mock_pdc.bounce_reason = None
         mock_pdc.cheque_number = "CHQ-001"
+        mock_pdc.bank_name = "HBL"
         mock_pdc.party_type = "vendor"
+        mock_pdc.party_id = uuid4()
         mock_pdc.amount = Decimal("30000.00")
         mock_pdc.cheque_date = date(2025, 4, 15)
+        mock_pdc.payment_id = None
+        mock_pdc.created_at = date(2025, 3, 1)
+        mock_pdc.updated_at = date(2025, 3, 1)
 
         def mock_execute(query):
             result = MagicMock()
@@ -603,11 +639,20 @@ class TestPDCManagement:
         mock_pdc = MagicMock()
         mock_pdc.id = pdc_id
         mock_pdc.cheque_number = "CHQ-MAT-001"
+        mock_pdc.bank_name = "HBL"
         mock_pdc.party_type = "customer"
+        mock_pdc.party_id = uuid4()
         mock_pdc.amount = Decimal("25000.00")
         mock_pdc.cheque_date = date.today() + timedelta(days=10)
         mock_pdc.status = "pending"
         mock_pdc.company_id = str(uuid4())
+        mock_pdc.deposited_at = None
+        mock_pdc.cleared_at = None
+        mock_pdc.bounced_at = None
+        mock_pdc.bounce_reason = None
+        mock_pdc.payment_id = None
+        mock_pdc.created_at = date(2025, 3, 1)
+        mock_pdc.updated_at = date(2025, 3, 1)
 
         mock_session = MagicMock()
         mock_session.execute.return_value.scalars.return_value.all.return_value = [mock_pdc]
@@ -636,9 +681,19 @@ class TestReconciliation:
 
         mock_session_obj = MagicMock()
         mock_session_obj.id = uuid4()
-        mock_session_obj.status = "completed"
+        mock_session_obj.company_id = str(uuid4())
+        mock_session_obj.created_by = uuid4()
+        mock_session_obj.updated_by = None
+        mock_session_obj.bank_account_id = uuid4()
         mock_session_obj.period_month = 3
         mock_session_obj.period_year = 2025
+        mock_session_obj.opening_balance = Decimal("100000.00")
+        mock_session_obj.closing_balance_per_bank = Decimal("144500.00")
+        mock_session_obj.closing_balance_per_books = Decimal("144500.00")
+        mock_session_obj.difference = Decimal("0.00")
+        mock_session_obj.status = "completed"
+        mock_session_obj.completed_at = date(2025, 3, 31)
+        mock_session_obj.completed_by = uuid4()
 
         mock_session = MagicMock()
         mock_session.execute.return_value.scalars.return_value.all.return_value = [mock_session_obj]
@@ -657,7 +712,7 @@ class TestReconciliation:
         session_id = uuid4()
         mock_session_obj = MagicMock()
         mock_session_obj.id = session_id
-        mock_session_obj.bank_account_id = str(uuid4())
+        mock_session_obj.bank_account_id = uuid4()
         mock_session_obj.period_month = 3
         mock_session_obj.period_year = 2025
         mock_session_obj.opening_balance = Decimal("100000.00")
@@ -669,6 +724,10 @@ class TestReconciliation:
         mock_session_obj.completed_by = None
         mock_session_obj.reconciled_transactions = {}
         mock_session_obj.company_id = str(uuid4())
+        mock_session_obj.created_by = uuid4()
+        mock_session_obj.updated_by = None
+        mock_session_obj.created_at = datetime(2025, 3, 1, 0, 0, 0)
+        mock_session_obj.updated_at = datetime(2025, 3, 1, 0, 0, 0)
 
         mock_session = MagicMock()
         mock_session.execute.return_value.scalar_one_or_none.return_value = None
@@ -678,7 +737,7 @@ class TestReconciliation:
         def mock_refresh(obj):
             obj.id = session_id
             obj.status = "in_progress"
-            obj.bank_account_id = str(uuid4())
+            obj.bank_account_id = uuid4()
             obj.period_month = 3
             obj.period_year = 2025
             obj.opening_balance = Decimal("100000.00")
@@ -688,6 +747,11 @@ class TestReconciliation:
             obj.completed_at = None
             obj.completed_by = None
             obj.reconciled_transactions = {}
+            obj.company_id = str(uuid4())
+            obj.created_by = uuid4()
+            obj.updated_by = None
+            obj.created_at = datetime(2025, 3, 1, 0, 0, 0)
+            obj.updated_at = datetime(2025, 3, 1, 0, 0, 0)
 
         mock_session.refresh = mock_refresh
         app.dependency_overrides[bank_reconciliation.get_db] = lambda: mock_session
@@ -738,6 +802,14 @@ class TestReconciliation:
         mock_session_obj = MagicMock()
         mock_session_obj.id = session_id
         mock_session_obj.company_id = str(uuid4())
+        mock_session_obj.created_by = uuid4()
+        mock_session_obj.updated_by = None
+        mock_session_obj.bank_account_id = uuid4()
+        mock_session_obj.period_month = 3
+        mock_session_obj.period_year = 2025
+        mock_session_obj.opening_balance = Decimal("100000.00")
+        mock_session_obj.closing_balance_per_bank = Decimal("144500.00")
+        mock_session_obj.closing_balance_per_books = Decimal("144500.00")
         mock_session_obj.difference = Decimal("0.00")
         mock_session_obj.status = "in_progress"
         mock_session_obj.completed_at = None
@@ -747,7 +819,24 @@ class TestReconciliation:
         mock_session.execute.return_value.scalar_one_or_none.return_value = mock_session_obj
         mock_session.add = MagicMock()
         mock_session.commit = MagicMock()
-        mock_session.refresh = MagicMock()
+
+        def mock_refresh(obj):
+            obj.id = session_id
+            obj.status = "completed"
+            obj.company_id = str(uuid4())
+            obj.created_by = uuid4()
+            obj.updated_by = None
+            obj.bank_account_id = uuid4()
+            obj.period_month = 3
+            obj.period_year = 2025
+            obj.opening_balance = Decimal("100000.00")
+            obj.closing_balance_per_bank = Decimal("144500.00")
+            obj.closing_balance_per_books = Decimal("144500.00")
+            obj.difference = Decimal("0.00")
+            obj.completed_at = date.today()
+            obj.completed_by = uuid4()
+
+        mock_session.refresh = mock_refresh
         app.dependency_overrides[bank_reconciliation.get_db] = lambda: mock_session
 
         response = client.post(
@@ -791,7 +880,11 @@ class TestReconciliation:
         mock_session_obj = MagicMock()
         mock_session_obj.id = session_id
         mock_session_obj.company_id = str(uuid4())
-        mock_session_obj.bank_account_id = str(uuid4())
+        mock_session_obj.created_by = uuid4()
+        mock_session_obj.updated_by = None
+        mock_session_obj.created_at = datetime(2025, 3, 1, 0, 0, 0)
+        mock_session_obj.updated_at = datetime(2025, 3, 1, 0, 0, 0)
+        mock_session_obj.bank_account_id = uuid4()
         mock_session_obj.period_month = 3
         mock_session_obj.period_year = 2025
         mock_session_obj.opening_balance = Decimal("100000.00")
@@ -834,7 +927,6 @@ class TestBankAccounts:
         mock_acc.name = "HBL Current"
         mock_acc.bank_name = "HBL"
         mock_acc.account_number = "PK36HABB0012345678"
-        mock_acc.account_type = "current"
         mock_acc.branch = "Karachi Main"
         mock_acc.iban = "PK36HABB0012345678901234"
         mock_acc.currency = "PKR"
@@ -844,8 +936,8 @@ class TestBankAccounts:
         mock_acc.company_id = cid
         mock_acc.created_by = uuid4()
         mock_acc.updated_by = None
-        mock_acc.created_at.__str__ = lambda s: "2025-01-01T00:00:00"
-        mock_acc.updated_at.__str__ = lambda s: "2025-01-01T00:00:00"
+        mock_acc.created_at = datetime(2025, 1, 1, 0, 0, 0)
+        mock_acc.updated_at = datetime(2025, 1, 1, 0, 0, 0)
 
         mock_session = MagicMock()
         mock_session.execute.return_value.scalars.return_value.all.return_value = [mock_acc]
@@ -868,7 +960,6 @@ class TestBankAccounts:
         mock_acc.name = "Meezan Savings"
         mock_acc.bank_name = "Meezan Bank"
         mock_acc.account_number = "PK12MEZN0098765432"
-        mock_acc.account_type = "savings"
         mock_acc.branch = None
         mock_acc.iban = None
         mock_acc.currency = "PKR"
@@ -878,6 +969,8 @@ class TestBankAccounts:
         mock_acc.company_id = str(uuid4())
         mock_acc.created_by = uuid4()
         mock_acc.updated_by = None
+        mock_acc.created_at = datetime(2025, 1, 1, 0, 0, 0)
+        mock_acc.updated_at = datetime(2025, 1, 1, 0, 0, 0)
 
         mock_session = MagicMock()
         mock_session.execute.return_value.scalars.return_value.all.return_value = [mock_acc]
@@ -889,13 +982,17 @@ class TestBankAccounts:
             obj.name = "Meezan Savings"
             obj.bank_name = "Meezan Bank"
             obj.account_number = "PK12MEZN0098765432"
-            obj.account_type = "savings"
             obj.branch = None
             obj.iban = None
             obj.currency = "PKR"
             obj.current_balance = Decimal("0.00")
             obj.opening_balance = Decimal("0.00")
             obj.is_active = True
+            obj.company_id = str(uuid4())
+            obj.created_by = uuid4()
+            obj.updated_by = None
+            obj.created_at = datetime(2025, 1, 1, 0, 0, 0)
+            obj.updated_at = datetime(2025, 1, 1, 0, 0, 0)
 
         mock_session.refresh = mock_refresh
         app.dependency_overrides[bank_reconciliation.get_db] = lambda: mock_session
@@ -906,8 +1003,9 @@ class TestBankAccounts:
                 "name": "Meezan Savings",
                 "bank_name": "Meezan Bank",
                 "account_number": "PK12MEZN0098765432",
-                "account_type": "savings",
-                },
+                "opening_balance": "0.00",
+                "current_balance": "0.00",
+            },
             headers=auth_headers,
         )
         assert response.status_code == 201

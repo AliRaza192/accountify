@@ -14,8 +14,8 @@ from app.schemas.base import AuditableSchema, CompanyBaseSchema
 
 # ============ Bank Account Schemas ============
 
-class BankAccountBase(CompanyBaseSchema):
-    """Base schema for bank account"""
+class BankAccountCreate(BaseModel):
+    """Schema for creating bank account"""
     name: str = Field(..., min_length=1, max_length=100)
     account_number: str = Field(..., min_length=1, max_length=50)
     bank_name: str = Field(..., min_length=1, max_length=100)
@@ -25,11 +25,6 @@ class BankAccountBase(CompanyBaseSchema):
     opening_balance: Decimal = Field(default=0, ge=0)
     current_balance: Decimal = Field(default=0)
     is_active: bool = True
-
-
-class BankAccountCreate(BankAccountBase):
-    """Schema for creating bank account"""
-    pass
 
 
 class BankAccountUpdate(BaseModel):
@@ -88,7 +83,7 @@ class BankStatementResponse(BaseModel):
 
 # ============ Reconciliation Session Schemas ============
 
-class ReconciliationSessionStart(CompanyBaseSchema):
+class ReconciliationSessionStart(BaseModel):
     """Schema for starting reconciliation session"""
     bank_account_id: UUID
     period_month: int = Field(..., ge=1, le=12)
@@ -128,15 +123,18 @@ class ReconciliationSessionResponse(AuditableSchema):
 
 class ReconciliationSessionDetail(ReconciliationSessionResponse):
     """Reconciliation session with transactions"""
+    company_id: UUID
+    created_by: Optional[UUID] = None
+    updated_by: Optional[UUID] = None
     bank_transactions: Optional[List[Dict[str, Any]]] = None
     system_transactions: Optional[List[Dict[str, Any]]] = None
-    matched_transactions: Optional[List[Dict[str, Any]]] = None
+    matched_transactions: Optional[Dict[str, Any]] = None
 
 
 # ============ PDC Schemas ============
 
-class PDCBase(CompanyBaseSchema):
-    """Base schema for PDC"""
+class PDCCreate(BaseModel):
+    """Schema for creating PDC"""
     cheque_number: str = Field(..., min_length=1, max_length=20)
     bank_name: str = Field(..., min_length=1, max_length=100)
     cheque_date: date
@@ -144,11 +142,6 @@ class PDCBase(CompanyBaseSchema):
     party_type: str = Field(..., pattern="^(customer|vendor)$")
     party_id: UUID
     status: str = Field(default="pending", pattern="^(pending|deposited|cleared|bounced|returned)$")
-
-
-class PDCCreate(PDCBase):
-    """Schema for creating PDC"""
-    pass
 
 
 class PDCUpdateStatus(BaseModel):

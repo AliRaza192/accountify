@@ -33,18 +33,16 @@ def mock_settings():
 
 @pytest.fixture(scope='function', autouse=True)
 def mock_supabase():
-    """Mock supabase client for all tests - patches both database.supabase and auth.supabase"""
+    """Mock supabase client for all tests - patches app.database.supabase"""
     from app import database
     from app.routers import auth
 
     mock_client = MagicMock()
 
-    # Mock the supabase client in database module
-    database._supabase_client = mock_client
-
-    # Also patch the supabase import in auth router
-    with patch.object(database, 'supabase', mock_client):
-        with patch.object(auth, 'supabase', mock_client):
+    # Patch the supabase attribute in database module (accessed via __getattr__)
+    with patch.object(database, 'supabase', mock_client, create=True):
+        # Also patch the auth router's direct import
+        with patch('app.routers.auth.supabase', mock_client):
             yield mock_client
 
 

@@ -4,6 +4,7 @@ Endpoints: Tax rates, sales tax returns, WHT transactions, challans, reports
 """
 
 import logging
+from decimal import Decimal
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
