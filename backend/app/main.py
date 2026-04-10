@@ -214,6 +214,19 @@ except Exception as e:
     logger.warning(f"Email router failed to load: {e}")
 
 
+# Phase 3: Project Costing & Financial Reports
+try:
+    from app.routers import project_costing
+    app.include_router(project_costing.router, prefix="/api/projects", tags=["Project Costing"])
+except Exception as e:
+    logger.warning(f"Project Costing router failed to load: {e}")
+
+try:
+    from app.routers import financial_reports
+    app.include_router(financial_reports.router, prefix="/api", tags=["Financial Reports"])
+except Exception as e:
+    logger.warning(f"Financial Reports router failed to load: {e}")
+
 # Phase 3: BI & Analytics
 try:
     from app.routers import bi_dashboard
